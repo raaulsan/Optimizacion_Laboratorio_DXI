@@ -54,6 +54,21 @@ Manteniendo el tiempo óptimo de la Fase 1, el modelo utiliza una **linealizaci�
 # Para ejecutar el modelo completo desde la consola de AMPL:
 ampl: include run_dxi.run;
 ```
+## QUE DEVUELVE EL RUN
+
+La ejecución produce la siguiente salida por terminal:
+
+1. **Fase 1 — Makespan**: resolución del problema de equilibrio de carga. Resultado: makespan óptimo de **2,87 horas (172,2 minutos)**, con los tres analizadores equilibrados al 35,9% de la jornada laboral.
+
+2. **Asignación detallada**: tabla por analizador con las pruebas asignadas, número de petacas, fracción de demanda cubierta y tiempo de procesamiento en minutos.
+
+3. **Tabla de contingencia**: resumen de la presencia de cada prueba en los analizadores, indicando cuáles disponen de plan de contingencia.
+
+4. **Fase 2 — Cohesión**: maximización de la co-ubicación de grupos de pruebas, manteniendo el makespan fijado. Resultado: **99,7% de cohesión** (25.804 de 25.872 co-ocurrencias mensuales cubiertas por un solo analizador).
+
+5. **Tabla final de 144 posiciones**: distribución completa tras el postproceso proporcional, con las 144 posiciones de los tres analizadores ocupadas.
+
+6. **Fichero exportado**: se genera automáticamente `result_xyp.txt` con los valores de todas las variables de decisión.
 
 ---
 ## 🤝 Contribuidores
