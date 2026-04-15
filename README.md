@@ -59,7 +59,7 @@ ampl: include run_dxi.run;
 ## 🤝 Contribuidores
 
 * **Álvaro Espejo Martínez** - [![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/espejomartinezalvaro-spec)
-* **Javier Hernández Rosique** - [![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/javierhernandezrosique)
+* **Javier Hernández Rosique** - [![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/javierhernandezrosique)   .
 * **Raúl Sánchez Ibáñez** - [![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/raaulsan)
 
 
