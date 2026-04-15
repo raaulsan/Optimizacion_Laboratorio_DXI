@@ -53,3 +53,12 @@ Manteniendo el tiempo óptimo de la Fase 1, el modelo utiliza una **linealizaci�
 ```bash
 # Para ejecutar el modelo completo desde la consola de AMPL:
 ampl: include run_dxi.run;
+```
+
+### Autores
+
+Álvaro Espejo Martínez .
+Javier Hernández Rosique .
+Raúl Sánchez Ibáñez
+
+
