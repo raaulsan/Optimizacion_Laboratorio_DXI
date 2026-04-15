@@ -9,7 +9,7 @@ Este repositorio contiene el desarrollo de un modelo de **Programación Lineal E
 
 ---
 
-## 🚀 Descripción del Problema
+##  Descripción del Problema
 
 El laboratorio procesa una demanda diaria de **28 pruebas clínicas**. El reto operativo consiste en asignar estas pruebas a los analizadores disponibles minimizando el tiempo de respuesta y, simultáneamente, maximizando la calidad del servicio mediante la reducción de la fragmentación de las muestras.
 
@@ -20,7 +20,7 @@ El laboratorio procesa una demanda diaria de **28 pruebas clínicas**. El reto o
 
 ---
 
-## 🧠 Metodología: Optimización Lexicográfica
+##  Metodología: Optimización Lexicográfica
 
 El modelo se resuelve en dos fases jerárquicas utilizando el solver de alto rendimiento **HiGHS**:
 
@@ -34,7 +34,7 @@ Manteniendo el tiempo óptimo de la Fase 1, el modelo utiliza una **linealizaci�
 
 ---
 
-## 📂 Estructura del Proyecto
+##  Estructura del Proyecto
 
 * `preprocesamiento_laboratorio.ipynb`: Limpieza de datos, binarización de peticiones y cálculo de matrices de co-ocurrencia con **Pandas/NumPy**.
 * `modelo_dxi.mod`: Formulación matemática en **AMPL** (variables, objetivos y restricciones).
@@ -44,7 +44,7 @@ Manteniendo el tiempo óptimo de la Fase 1, el modelo utiliza una **linealizaci�
 
 ---
 
-## 🛠️ Requisitos e Instalación
+##  Requisitos e Instalación
 
 1.  **AMPL:** Es necesario tener instalado el entorno de modelado AMPL.
 2.  **Solver HiGHS:** El modelo utiliza `option solver highs;`.
@@ -57,7 +57,7 @@ ampl: include run_dxi.run;
 
 ### Autores
 
-Álvaro Espejo Martínez .
+Álvaro Espejo Martínez 
 
 Javier Hernández Rosique .
 
