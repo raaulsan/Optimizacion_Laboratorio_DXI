@@ -64,7 +64,7 @@ La ejecución produce la siguiente salida por terminal:
 
 3. **Tabla de contingencia**: resumen de la presencia de cada prueba en los analizadores, indicando cuáles disponen de plan de contingencia.
 
-4. **Fase 2 — Cohesión**: maximización de la co-ubicación de grupos de pruebas, manteniendo el makespan fijado. Resultado: **99,7% de cohesión** (25.804 de 25.872 co-ocurrencias mensuales cubiertas por un solo analizador).
+4. **Fase 2 — Cohesión**: maximización de la co-ubicación de grupos de pruebas, manteniendo el makespan fijado. Resultado: **99,7% de cohesión** (25.804 de 25.872 co-ocurrencias mensuales cubiertas).
 
 5. **Tabla final de 144 posiciones**: distribución completa tras el postproceso proporcional, con las 144 posiciones de los tres analizadores ocupadas.
 
