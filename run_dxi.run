@@ -1,0 +1,319 @@
+
+# =============================================================================
+# RUN FILE — LABORATORIO DE ANÁLISIS CLÍNICO (DxI-9000)
+# =============================================================================
+
+reset;
+
+model modelo_dxi.mod;
+data  datos_dxi.dat;
+
+# ─── SOLVER ──────────────────────────────────────────────────────────────────
+# Cambiar a 'cplex' o 'gurobi' si están disponibles (más rápidos para MILP)
+option solver highs;
+# option solver cplex;   # alternativa más rápida para instancias grandes (requiere licencia)
+# option solver glpk;
+
+# Opciones de tiempo límite (segundos)
+# option cplex_options 'timelimit=300';
+# option glpk_options  'tmlim=300';
+
+solve;
+
+# ─── COMPROBACIÓN DE ESTADO ───────────────────────────────────────────────────
+printf "\n";
+printf "═══════════════════════════════════════════════════════════\n";
+printf "  ESTADO DE LA SOLUCIÓN: %s\n", solve_result;
+printf "═══════════════════════════════════════════════════════════\n\n";
+
+# ─── RESULTADO PRINCIPAL ──────────────────────────────────────────────────────
+printf "MAKESPAN ÓPTIMO: %.4f horas (%.1f min)\n\n", T_max, T_max * 60;
+
+# ─── CARGA POR ANALIZADOR ─────────────────────────────────────────────────────
+printf "─── CARGA POR ANALIZADOR ───────────────────────────────────\n";
+printf "%-8s  %6s  %6s  %8s  %6s\n",
+    "Analiz.", "Pos.usadas", "Carga(h)", "Carga(min)", "%Jornada";
+for {j in ANALIZADORES} {
+    printf "%-8s  %6d  %8.4f  %8.1f  %6.1f%%\n",
+        j,
+        sum {i in PRUEBAS} p[i,j],
+        sum {i in PRUEBAS} (y[i,j] * dem[i] / vel[i]),
+        sum {i in PRUEBAS} (y[i,j] * dem[i] / vel[i]) * 60,
+        100 * (sum {i in PRUEBAS} (y[i,j] * dem[i] / vel[i])) / horas;
+}
+printf "\n";
+
+# ─── ASIGNACIÓN DE PRUEBAS Y PETACAS POR ANALIZADOR ─────────────────────────
+printf "─── ASIGNACIÓN DETALLADA ────────────────────────────────────\n";
+for {j in ANALIZADORES} {
+    printf "\n  [%s]  Posiciones disponibles: %d\n", j, cap[j];
+    printf "  %-8s  %5s  %5s  %6s  %7s  %6s\n",
+        "Prueba", "Pasos", "Petac.", "y[i,j]", "Dem.asig", "T(min)";
+    printf "  %s\n", "-----------------------------------------------------------";
+    for {i in PRUEBAS: x[i,j] > 0.5} {
+        printf "  %-8s  %5d  %5d  %6.3f  %7.1f  %6.2f\n",
+            i,
+            (if i in UN_PASO then 1 else 2),
+            p[i,j],
+            y[i,j],
+            y[i,j] * dem[i],
+            y[i,j] * dem[i] / vel[i] * 60;
+    }
+    printf "  %s\n", "-----------------------------------------------------------";
+    printf "  TOTAL            %5d\n\n",
+        sum {i in PRUEBAS} p[i,j];
+}
+
+# ─── RESUMEN DE PRESENCIA (en cuántos analizadores está cada prueba) ──────────
+printf "─── CONTINGENCIA Y DISTRIBUCIÓN ─────────────────────────────\n";
+printf "%-8s  %5s  %10s  %10s  %10s  %5s  %s\n",
+    "Prueba", "Pasos", "DxI1(pet)", "DxI2(pet)", "DxI3(pet)", "nDxI", "Exenta";
+for {i in PRUEBAS} {
+    printf "%-8s  %5d  %10s  %10s  %10s  %5d  %s\n",
+        i,
+        (if i in UN_PASO then 1 else 2),
+        (if x[i,'DxI1'] > 0.5 then p[i,'DxI1'] else "-"),
+        (if x[i,'DxI2'] > 0.5 then p[i,'DxI2'] else "-"),
+        (if x[i,'DxI3'] > 0.5 then p[i,'DxI3'] else "-"),
+        sum {j in ANALIZADORES} x[i,j],
+        (if i in EXENTAS then "Si" else "");
+}
+printf "\n";
+
+# ─── BALANCE DE PASOS ─────────────────────────────────────────────────────────
+printf "─── BALANCE DE PRUEBAS 1-PASO / 2-PASOS ─────────────────────\n";
+printf "%-8s  %8s  %9s\n", "Analiz.", "1-paso", "2-pasos";
+for {j in ANALIZADORES} {
+    printf "%-8s  %8d  %9d\n",
+        j,
+        sum {i in UN_PASO}   x[i,j],
+        sum {i in DOS_PASOS} x[i,j];
+}
+printf "\n";
+
+# ─── PETACAS TOTALES USADAS ───────────────────────────────────────────────────
+printf "─── USO DE POSICIONES ───────────────────────────────────────\n";
+printf "Total posiciones disponibles: %d  (DxI1=%d + DxI2=%d + DxI3=%d)\n",
+    sum {j in ANALIZADORES} cap[j], cap['DxI1'], cap['DxI2'], cap['DxI3'];
+printf "Total posiciones usadas:      %d\n",
+    sum {i in PRUEBAS, j in ANALIZADORES} p[i,j];
+printf "Posiciones libres:            %d\n\n",
+    sum {j in ANALIZADORES} cap[j] - sum {i in PRUEBAS, j in ANALIZADORES} p[i,j];
+
+# ─── VERIFICACIÓN PSA-PSAL ────────────────────────────────────────────────────
+# Regla: PSAL solo puede estar en analizadores donde también esté PSA (no al revés).
+printf "─── VERIFICACIÓN PSA / PSAL (PSAL debe estar contenida en PSA) ─\n";
+for {j in ANALIZADORES} {
+    printf "  %s: PSA=%d  PSAL=%d  →  %s\n",
+        j, x['PSA',j], x['PSAL',j],
+        (if x['PSAL',j] <= x['PSA',j] then "OK" else "¡ERROR!");
+}
+printf "\n";
+
+# =============================================================================
+# FASE 2 — MAXIMIZAR COHESIÓN DE PETICIONES
+# =============================================================================
+# Se fija T_opt al makespan óptimo obtenido en Fase 1.
+# La restricción MakespanFijado (T_max <= T_opt) garantiza que la búsqueda
+# de cohesión no empeore el tiempo de procesamiento.
+
+let T_opt := T_max;
+
+objective Cohesion;
+solve;
+
+printf "═══════════════════════════════════════════════════════════\n";
+printf "  FASE 2 — COHESIÓN: %s\n", solve_result;
+printf "  Makespan mantenido: %.4f h (= %.1f min)\n", T_max, T_max * 60;
+printf "═══════════════════════════════════════════════════════════\n\n";
+
+# ─── PUNTUACIÓN GLOBAL DE COHESIÓN ───────────────────────────────────────────
+# Máximo teórico: cada grupo completo en los 3 analizadores → 3 × Σf[g]
+printf "Puntuacion cohesion:  %7.0f / %7.0f  (%.1f%%)\n\n",
+    (sum {g in GRUPOS_PARE, j in ANALIZADORES} f_PARE[g] * w_pare[g,j]
+   + sum {g in GRUPOS_TRIP, j in ANALIZADORES} f_TRIP[g] * w_trip[g,j]
+   + sum {g in GRUPOS_CUAR, j in ANALIZADORES} f_CUAR[g] * w_cuar[g,j]
+   + sum {g in GRUPOS_QUIN, j in ANALIZADORES} f_QUIN[g] * w_quin[g,j]
+   + sum {g in GRUPOS_SEXT, j in ANALIZADORES} f_SEXT[g] * w_sext[g,j]),
+    3 * (sum {g in GRUPOS_PARE} f_PARE[g] + sum {g in GRUPOS_TRIP} f_TRIP[g]
+       + sum {g in GRUPOS_CUAR} f_CUAR[g] + sum {g in GRUPOS_QUIN} f_QUIN[g]
+       + sum {g in GRUPOS_SEXT} f_SEXT[g]),
+    100 * (sum {g in GRUPOS_PARE, j in ANALIZADORES} f_PARE[g] * w_pare[g,j]
+         + sum {g in GRUPOS_TRIP, j in ANALIZADORES} f_TRIP[g] * w_trip[g,j]
+         + sum {g in GRUPOS_CUAR, j in ANALIZADORES} f_CUAR[g] * w_cuar[g,j]
+         + sum {g in GRUPOS_QUIN, j in ANALIZADORES} f_QUIN[g] * w_quin[g,j]
+         + sum {g in GRUPOS_SEXT, j in ANALIZADORES} f_SEXT[g] * w_sext[g,j])
+       / (3 * (sum {g in GRUPOS_PARE} f_PARE[g] + sum {g in GRUPOS_TRIP} f_TRIP[g]
+            + sum {g in GRUPOS_CUAR} f_CUAR[g] + sum {g in GRUPOS_QUIN} f_QUIN[g]
+            + sum {g in GRUPOS_SEXT} f_SEXT[g]));
+
+# ─── DESGLOSE DE COHESIÓN POR NIVEL ──────────────────────────────────────────
+printf "--- DESGLOSE DE COHESION POR NIVEL ----------------------------------\n";
+printf "%-12s  %8s  %8s  %8s  %8s\n",
+    "Nivel", "Grupos", "Unidos", "Score", "Max";
+
+printf "%-12s  %8d  %8d  %8.0f  %8.0f\n", "Parejas",
+    card(GRUPOS_PARE),
+    sum {g in GRUPOS_PARE, j in ANALIZADORES} w_pare[g,j],
+    sum {g in GRUPOS_PARE, j in ANALIZADORES} f_PARE[g] * w_pare[g,j],
+    3 * sum {g in GRUPOS_PARE} f_PARE[g];
+
+printf "%-12s  %8d  %8d  %8.0f  %8.0f\n", "Tripletas",
+    card(GRUPOS_TRIP),
+    sum {g in GRUPOS_TRIP, j in ANALIZADORES} w_trip[g,j],
+    sum {g in GRUPOS_TRIP, j in ANALIZADORES} f_TRIP[g] * w_trip[g,j],
+    3 * sum {g in GRUPOS_TRIP} f_TRIP[g];
+
+printf "%-12s  %8d  %8d  %8.0f  %8.0f\n", "Cuartetos",
+    card(GRUPOS_CUAR),
+    sum {g in GRUPOS_CUAR, j in ANALIZADORES} w_cuar[g,j],
+    sum {g in GRUPOS_CUAR, j in ANALIZADORES} f_CUAR[g] * w_cuar[g,j],
+    3 * sum {g in GRUPOS_CUAR} f_CUAR[g];
+
+printf "%-12s  %8d  %8d  %8.0f  %8.0f\n", "Quintuplos",
+    card(GRUPOS_QUIN),
+    sum {g in GRUPOS_QUIN, j in ANALIZADORES} w_quin[g,j],
+    sum {g in GRUPOS_QUIN, j in ANALIZADORES} f_QUIN[g] * w_quin[g,j],
+    3 * sum {g in GRUPOS_QUIN} f_QUIN[g];
+
+printf "%-12s  %8d  %8d  %8.0f  %8.0f\n", "Sextuplos",
+    card(GRUPOS_SEXT),
+    sum {g in GRUPOS_SEXT, j in ANALIZADORES} w_sext[g,j],
+    sum {g in GRUPOS_SEXT, j in ANALIZADORES} f_SEXT[g] * w_sext[g,j],
+    3 * sum {g in GRUPOS_SEXT} f_SEXT[g];
+printf "\n";
+
+# ─── COHESIÓN POR ANALIZADOR ─────────────────────────────────────────────────
+printf "--- COHESION POR ANALIZADOR -----------------------------------------\n";
+printf "%-8s  %9s  %9s  %9s  %9s  %9s  %9s\n",
+    "Analiz.", "Par", "Trip", "Cuar", "Quin", "Sext", "Total";
+for {j in ANALIZADORES} {
+    printf "%-8s  %9.0f  %9.0f  %9.0f  %9.0f  %9.0f  %9.0f\n",
+        j,
+        sum {g in GRUPOS_PARE} f_PARE[g] * w_pare[g,j],
+        sum {g in GRUPOS_TRIP} f_TRIP[g] * w_trip[g,j],
+        sum {g in GRUPOS_CUAR} f_CUAR[g] * w_cuar[g,j],
+        sum {g in GRUPOS_QUIN} f_QUIN[g] * w_quin[g,j],
+        sum {g in GRUPOS_SEXT} f_SEXT[g] * w_sext[g,j],
+        sum {g in GRUPOS_PARE} f_PARE[g] * w_pare[g,j]
+      + sum {g in GRUPOS_TRIP} f_TRIP[g] * w_trip[g,j]
+      + sum {g in GRUPOS_CUAR} f_CUAR[g] * w_cuar[g,j]
+      + sum {g in GRUPOS_QUIN} f_QUIN[g] * w_quin[g,j]
+      + sum {g in GRUPOS_SEXT} f_SEXT[g] * w_sext[g,j];
+}
+printf "\n";
+
+# ─── GRUPOS COMPLEJOS CO-UBICADOS (quintuplos y sextuplos) ───────────────────
+printf "--- GRUPOS COMPLEJOS CO-UBICADOS ------------------------------------\n";
+printf "%-10s  %-35s  %s\n", "ID", "Componentes", "Ubicacion";
+for {g in GRUPOS_SEXT: sum {j in ANALIZADORES} w_sext[g,j] > 0.5} {
+    printf "%-10s  %-35s  %s\n", g,
+        "(sextuplo)",
+        if w_sext[g,'DxI1'] > 0.5 and w_sext[g,'DxI2'] > 0.5 and w_sext[g,'DxI3'] > 0.5
+            then "DxI1+DxI2+DxI3"
+        else if w_sext[g,'DxI1'] > 0.5 and w_sext[g,'DxI2'] > 0.5 then "DxI1+DxI2"
+        else if w_sext[g,'DxI1'] > 0.5 and w_sext[g,'DxI3'] > 0.5 then "DxI1+DxI3"
+        else if w_sext[g,'DxI2'] > 0.5 and w_sext[g,'DxI3'] > 0.5 then "DxI2+DxI3"
+        else if w_sext[g,'DxI1'] > 0.5 then "DxI1"
+        else if w_sext[g,'DxI2'] > 0.5 then "DxI2"
+        else "DxI3";
+}
+for {g in GRUPOS_QUIN: sum {j in ANALIZADORES} w_quin[g,j] > 0.5} {
+    printf "%-10s  %-35s  %s\n", g,
+        "(quintuplo)",
+        if w_quin[g,'DxI1'] > 0.5 and w_quin[g,'DxI2'] > 0.5 and w_quin[g,'DxI3'] > 0.5
+            then "DxI1+DxI2+DxI3"
+        else if w_quin[g,'DxI1'] > 0.5 and w_quin[g,'DxI2'] > 0.5 then "DxI1+DxI2"
+        else if w_quin[g,'DxI1'] > 0.5 and w_quin[g,'DxI3'] > 0.5 then "DxI1+DxI3"
+        else if w_quin[g,'DxI2'] > 0.5 and w_quin[g,'DxI3'] > 0.5 then "DxI2+DxI3"
+        else if w_quin[g,'DxI1'] > 0.5 then "DxI1"
+        else if w_quin[g,'DxI2'] > 0.5 then "DxI2"
+        else "DxI3";
+}
+printf "\n";
+
+# =============================================================================
+# POST-PROCESO PROPORCIONAL — TABLA FINAL DE 144 POSICIONES
+# =============================================================================
+# Algoritmo (por analizador j):
+#   1. excess[j]   = cap[j] - sum_i p[i,j]          (posiciones libres)
+#   2. totalw[j]   = sum_{i: y>0} y[i,j]*dem[i]      (demanda enrutada total)
+#   3. exact[i,j]  = excess[j] * y[i,j]*dem[i] / totalw[j]   (reparto continuo)
+#   4. p_base[i,j] = p[i,j] + floor(exact[i,j])      (parte entera)
+#   5. resto[j]    = excess[j] - sum_i floor(exact[i,j])
+#   6. rank[i,j]   = nº de tests con frac mayor que i (0 = mayor fracción)
+#   7. p_final[i,j]= p_base[i,j] + 1  si rank[i,j] < resto[j], si no p_base
+# Tests con x=1 pero y=0 (presencia fantasma) conservan su p mínimo.
+# =============================================================================
+
+param pp_excess  {ANALIZADORES}      default 0;
+param pp_totalw  {ANALIZADORES}      default 0;
+param pp_exact   {PRUEBAS, ANALIZADORES} default 0;
+param pp_frac    {PRUEBAS, ANALIZADORES} default 0;
+param pp_rem     {ANALIZADORES}      default 0;
+param pp_rank    {PRUEBAS, ANALIZADORES} default 0;
+param pp_pfinal  {PRUEBAS, ANALIZADORES} default 0;
+
+# Paso 1-2
+let {j in ANALIZADORES}
+    pp_excess[j] := cap[j] - sum {i in PRUEBAS} p[i,j];
+let {j in ANALIZADORES}
+    pp_totalw[j] := sum {i in PRUEBAS: y[i,j] > 1e-6} y[i,j] * dem[i];
+
+# Paso 3-4: reparto continuo y parte fraccionaria (solo tests con y > 0)
+let {i in PRUEBAS, j in ANALIZADORES: x[i,j] > 0.5 and y[i,j] > 1e-6}
+    pp_exact[i,j] := pp_excess[j] * y[i,j] * dem[i] / pp_totalw[j];
+let {i in PRUEBAS, j in ANALIZADORES: x[i,j] > 0.5 and y[i,j] > 1e-6}
+    pp_frac[i,j]  := pp_exact[i,j] - floor(pp_exact[i,j]);
+
+# Paso 5: posiciones sobrantes tras floor
+let {j in ANALIZADORES}
+    pp_rem[j] := pp_excess[j] -
+        sum {i in PRUEBAS: x[i,j] > 0.5 and y[i,j] > 1e-6} floor(pp_exact[i,j]);
+
+# Paso 6: rango por fracción descendente (0 = mayor fracción → más prioritario)
+# Desempate por ord() en PRUEBAS para evitar sobreasignación cuando dos tests
+# tienen exactamente la misma fracción (p.ej. PRL y PSAL con y*dem=32).
+let {i in PRUEBAS, j in ANALIZADORES: x[i,j] > 0.5 and y[i,j] > 1e-6}
+    pp_rank[i,j] :=
+        sum {k in PRUEBAS: x[k,j] > 0.5 and y[k,j] > 1e-6
+             and (pp_frac[k,j] > pp_frac[i,j] + 1e-9
+                  or (abs(pp_frac[k,j] - pp_frac[i,j]) <= 1e-9
+                      and ord(k) < ord(i)))} 1;
+
+# Paso 7: petacas finales
+let {i in PRUEBAS, j in ANALIZADORES: x[i,j] > 0.5}
+    pp_pfinal[i,j] := p[i,j] + floor(pp_exact[i,j])
+        + (if y[i,j] > 1e-6 and pp_rank[i,j] < pp_rem[j] then 1 else 0);
+
+# ─── TABLA FINAL ──────────────────────────────────────────────────────────────
+printf "=============================================================\n";
+printf "  TABLA FINAL — %d POSICIONES DISTRIBUIDAS\n",
+    sum {i in PRUEBAS, j in ANALIZADORES} pp_pfinal[i,j];
+printf "=============================================================\n";
+printf "%-8s  %8s  %8s  %8s  %6s\n", "Prueba", "DxI1", "DxI2", "DxI3", "Total";
+printf "-----------------------------------------------------\n";
+for {i in PRUEBAS} {
+    printf "%-8s  %8s  %8s  %8s  %6d\n",
+        i,
+        (if x[i,'DxI1'] > 0.5 then pp_pfinal[i,'DxI1'] else "-"),
+        (if x[i,'DxI2'] > 0.5 then pp_pfinal[i,'DxI2'] else "-"),
+        (if x[i,'DxI3'] > 0.5 then pp_pfinal[i,'DxI3'] else "-"),
+        sum {j in ANALIZADORES} pp_pfinal[i,j];
+}
+printf "-----------------------------------------------------\n";
+printf "%-8s  %8d  %8d  %8d  %6d\n", "TOTAL",
+    sum {i in PRUEBAS} pp_pfinal[i,'DxI1'],
+    sum {i in PRUEBAS} pp_pfinal[i,'DxI2'],
+    sum {i in PRUEBAS} pp_pfinal[i,'DxI3'],
+    sum {i in PRUEBAS, j in ANALIZADORES} pp_pfinal[i,j];
+
+# =============================================================================
+# VOLCADO A FICHERO (para uso externo / postproceso.py si se necesita)
+# =============================================================================
+printf "### RESULT_XYP_BEGIN ###\n" > "result_xyp.txt";
+for {i in PRUEBAS, j in ANALIZADORES} {
+    printf "RESULT_XYP %s %s %d %.6f %d %d\n",
+        i, j, x[i,j], y[i,j], p[i,j], cap[j] >> "result_xyp.txt";
+}
+printf "### RESULT_XYP_END ###\n" >> "result_xyp.txt";

@@ -1,0 +1,293 @@
+# =============================================================================
+# DATOS - LABORATORIO DE ANALISIS CLINICO (DxI-9000)
+# Enero 2026 | 22 dias laborables
+# Fuente: preprocesamiento_laboratorio_v3.ipynb + anotaciones 09/04
+# =============================================================================
+
+# --- CONJUNTOS ---------------------------------------------------------------
+
+set PRUEBAS :=
+    TSH VITD B12 FOL T4L PSA CEA FSH TES CA153 CA125 LH PTH COR T3L
+    PRL CA199 TPO PSAL EST PROG INS AFP HCG TIRO PEPC ATG SHBG ;
+
+set ANALIZADORES := DxI1 DxI2 DxI3 ;
+
+set EXENTAS := HCG TIRO PEPC ATG SHBG ;
+
+set UN_PASO := TSH VITD PSA PSAL CA125 AFP PTH T3L PRL HCG TES INS PEPC COR TIRO ;
+
+set DOS_PASOS := B12 FOL T4L CEA CA199 CA153 FSH LH EST PROG TPO ATG SHBG ;
+
+set BIG_SIX := TSH VITD B12 FOL T4L PSA ;
+
+
+# --- INFRAESTRUCTURA ---------------------------------------------------------
+
+param cap :=
+    DxI1  50
+    DxI2  47
+    DxI3  47 ;
+
+param horas := 8 ;
+
+param delta := 3 ;
+
+
+# --- CAPACIDAD DE PETACA -----------------------------------------------------
+
+param c :=
+    TSH    200
+    VITD    50
+    PSA    100
+    PSAL    50
+    CA125   50
+    AFP     50
+    PTH     50
+    T3L     50
+    PRL     50
+    HCG     50
+    TES     50
+    INS     50
+    PEPC    50
+    COR     50
+    TIRO    50
+    B12     50
+    FOL     50
+    T4L     50
+    CEA     50
+    CA199   50
+    CA153   50
+    FSH     50
+    LH      50
+    EST     50
+    PROG    50
+    TPO     50
+    ATG     50
+    SHBG    50
+    ;
+
+
+# --- VELOCIDAD ---------------------------------------------------------------
+
+param vel :=
+    TSH    450
+    VITD   450
+    PSA    450
+    PSAL   450
+    CA125  450
+    AFP    450
+    PTH    450
+    T3L    450
+    PRL    450
+    HCG    450
+    TES    450
+    INS    450
+    PEPC   450
+    COR    450
+    TIRO   450
+    B12    225
+    FOL    225
+    T4L    225
+    CEA    225
+    CA199  225
+    CA153  225
+    FSH    225
+    LH     225
+    EST    225
+    PROG   225
+    TPO    225
+    ATG    225
+    SHBG   225
+    ;
+
+
+# --- DEMANDA MAXIMA DIARIA ---------------------------------------------------
+
+param dem :=
+    TSH    765
+    VITD   322
+    B12    300
+    FOL    260
+    T4L    240
+    PSA    149
+    CEA     88
+    FSH     45
+    TES     43
+    CA153   45
+    CA125   41
+    LH      41
+    PTH     74
+    COR     35
+    T3L     37
+    PRL     32
+    CA199   28
+    TPO     36
+    PSAL    32
+    EST     28
+    PROG    22
+    INS     17
+    AFP     15
+    HCG      8
+    TIRO    10
+    PEPC     8
+    ATG      6
+    SHBG     4
+    ;
+
+
+# =============================================================================
+# CO-OCURRENCIAS JERARQUICAS ? TOP 10 POR NIVEL (excluye Big Six)
+# Fuente: preprocesamiento_laboratorio_v3.ipynb, celda 5b
+# Se conservan unicamente los 10 grupos mas frecuentes por nivel.
+# Los pesos f son las frecuencias reales de enero 2026 (n? peticiones).
+# =============================================================================
+
+# --- PAREJAS (top 10) --------------------------------------------------------
+
+set GRUPOS_PARE :=
+    PARE_1 PARE_2 PARE_3 PARE_4 PARE_5
+    PARE_6 PARE_7 PARE_8 PARE_9 PARE_10 ;
+
+param f_PARE :=
+    PARE_1   590
+    PARE_2   500
+    PARE_3   381
+    PARE_4   368
+    PARE_5   336
+    PARE_6   305
+    PARE_7   305
+    PARE_8   301
+    PARE_9   277
+    PARE_10  258
+    ;
+
+set COMP_PARE[PARE_1] := CEA CA153 ;
+set COMP_PARE[PARE_2] := FSH LH ;
+set COMP_PARE[PARE_3] := CEA CA199 ;
+set COMP_PARE[PARE_4] := FSH EST ;
+set COMP_PARE[PARE_5] := LH EST ;
+set COMP_PARE[PARE_6] := LH PRL ;
+set COMP_PARE[PARE_7] := TES LH ;
+set COMP_PARE[PARE_8] := FSH PRL ;
+set COMP_PARE[PARE_9] := FSH TES ;
+set COMP_PARE[PARE_10] := FSH PROG ;
+
+# --- TRIPLETAS (top 10) ------------------------------------------------------
+
+set GRUPOS_TRIP :=
+    TRIP_1 TRIP_2 TRIP_3 TRIP_4 TRIP_5
+    TRIP_6 TRIP_7 TRIP_8 TRIP_9 TRIP_10 ;
+
+param f_TRIP :=
+    TRIP_1   331
+    TRIP_2   288
+    TRIP_3   270
+    TRIP_4   251
+    TRIP_5   202
+    TRIP_6   200
+    TRIP_7   198
+    TRIP_8   197
+    TRIP_9   197
+    TRIP_10  196
+    ;
+
+set COMP_TRIP[TRIP_1] := EST FSH LH ;
+set COMP_TRIP[TRIP_2] := FSH LH PRL ;
+set COMP_TRIP[TRIP_3] := FSH LH TES ;
+set COMP_TRIP[TRIP_4] := FSH LH PROG ;
+set COMP_TRIP[TRIP_5] := EST FSH PRL ;
+set COMP_TRIP[TRIP_6] := EST LH PRL ;
+set COMP_TRIP[TRIP_7] := EST LH PROG ;
+set COMP_TRIP[TRIP_8] := EST FSH PROG ;
+set COMP_TRIP[TRIP_9] := EST FSH TES ;
+set COMP_TRIP[TRIP_10] := EST LH TES ;
+
+# --- CUARTETOS (top 10) ------------------------------------------------------
+
+set GRUPOS_CUAR :=
+    CUAR_1 CUAR_2 CUAR_3 CUAR_4 CUAR_5
+    CUAR_6 CUAR_7 CUAR_8 CUAR_9 CUAR_10 ;
+
+param f_CUAR :=
+    CUAR_1   196
+    CUAR_2   195
+    CUAR_3   194
+    CUAR_4   169
+    CUAR_5   167
+    CUAR_6   167
+    CUAR_7   141
+    CUAR_8   140
+    CUAR_9   132
+    CUAR_10  131
+    ;
+
+set COMP_CUAR[CUAR_1] := EST FSH LH PRL ;
+set COMP_CUAR[CUAR_2] := EST FSH LH PROG ;
+set COMP_CUAR[CUAR_3] := EST FSH LH TES ;
+set COMP_CUAR[CUAR_4] := FSH LH PRL TES ;
+set COMP_CUAR[CUAR_5] := FSH LH PROG PRL ;
+set COMP_CUAR[CUAR_6] := FSH LH PROG TES ;
+set COMP_CUAR[CUAR_7] := EST FSH PROG TES ;
+set COMP_CUAR[CUAR_8] := EST LH PROG TES ;
+set COMP_CUAR[CUAR_9] := EST LH PROG PRL ;
+set COMP_CUAR[CUAR_10] := EST FSH PROG PRL ;
+
+# --- QUINTUPLOS (top 10) -----------------------------------------------------
+
+set GRUPOS_QUIN :=
+    QUIN_1 QUIN_2 QUIN_3 QUIN_4 QUIN_5
+    QUIN_6 QUIN_7 QUIN_8 QUIN_9 QUIN_10 ;
+
+param f_QUIN :=
+    QUIN_1   139
+    QUIN_2   129
+    QUIN_3   125
+    QUIN_4   121
+    QUIN_5   101
+    QUIN_6   100
+    QUIN_7    37
+    QUIN_8    30
+    QUIN_9    24
+    QUIN_10   21
+    ;
+
+set COMP_QUIN[QUIN_1] := EST FSH LH PROG TES ;
+set COMP_QUIN[QUIN_2] := EST FSH LH PROG PRL ;
+set COMP_QUIN[QUIN_3] := EST FSH LH PRL TES ;
+set COMP_QUIN[QUIN_4] := FSH LH PROG PRL TES ;
+set COMP_QUIN[QUIN_5] := EST FSH PROG PRL TES ;
+set COMP_QUIN[QUIN_6] := EST LH PROG PRL TES ;
+set COMP_QUIN[QUIN_7] := AFP CA125 CA153 CA199 CEA ;
+set COMP_QUIN[QUIN_8] := COR FSH LH PRL TES ;
+set COMP_QUIN[QUIN_9] := COR EST FSH LH PRL ;
+set COMP_QUIN[QUIN_10] := COR EST FSH LH TES ;
+
+# --- SEXTUPLOS (top 10) ------------------------------------------------------
+
+set GRUPOS_SEXT :=
+    SEXT_1 SEXT_2 SEXT_3 SEXT_4 SEXT_5
+    SEXT_6 SEXT_7 SEXT_8 SEXT_9 SEXT_10 ;
+
+param f_SEXT :=
+    SEXT_1    99
+    SEXT_2    18
+    SEXT_3    16
+    SEXT_4    14
+    SEXT_5    12
+    SEXT_6    12
+    SEXT_7    12
+    SEXT_8    11
+    SEXT_9    10
+    SEXT_10   10
+    ;
+
+set COMP_SEXT[SEXT_1] := EST FSH LH PROG PRL TES ;
+set COMP_SEXT[SEXT_2] := COR EST FSH LH PRL TES ;
+set COMP_SEXT[SEXT_3] := COR FSH LH PROG PRL TES ;
+set COMP_SEXT[SEXT_4] := COR EST FSH LH PROG TES ;
+set COMP_SEXT[SEXT_5] := COR EST FSH LH PROG PRL ;
+set COMP_SEXT[SEXT_6] := COR EST FSH PROG PRL TES ;
+set COMP_SEXT[SEXT_7] := COR EST LH PROG PRL TES ;
+set COMP_SEXT[SEXT_8] := EST FSH LH PRL TES INS ;
+set COMP_SEXT[SEXT_9] := COR FSH LH PRL TES INS ;
+set COMP_SEXT[SEXT_10] := EST FSH LH PROG TES INS ;
