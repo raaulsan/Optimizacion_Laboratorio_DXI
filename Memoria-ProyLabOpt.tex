@@ -1,0 +1,1211 @@
+% ============================================================
+%  MEMORIA FORMAL — Optimización DxI-9000
+%  Compilar con: pdflatex o xelatex (Overleaf: pdflatex)
+% ============================================================
+\documentclass[12pt, a4paper]{article}
+
+% ─── Paquetes ──────────────────────────────────────────────
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-noshorthands]{babel}
+\usepackage{lmodern}
+\usepackage{microtype}
+
+\usepackage{geometry}
+\geometry{left=2.5cm, right=2.5cm, top=3cm, bottom=3cm}
+
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{parskip}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{pifont}
+
+% ─── Hiperenlaces ──────────────────────────────────────────
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,          % índice y referencias internas en negro
+  citecolor=black,
+  urlcolor=blue!60!black,   % URLs externas conservan el azul
+  pdftitle={Optimización de la distribución de reactivos en analizadores DxI-9000},
+  pdfauthor={Laboratorio de Optimización},
+}
+
+% ─── Cabecera y pie de página ──────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Laboratorio de Optimización}
+\fancyhead[R]{\small DxI-9000 — Distribución de reactivos}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ─── Código fuente ─────────────────────────────────────────
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  backgroundcolor=\color{gray!8},
+  rulecolor=\color{gray!40},
+  xleftmargin=1em,
+  xrightmargin=1em,
+}
+
+% ─── Checks y cruces ───────────────────────────────────────
+\newcommand{\cmark}{\ding{51}}
+\newcommand{\xmark}{\ding{55}}
+
+% ============================================================
+\begin{document}
+% ============================================================
+
+% ─── PORTADA ───────────────────────────────────────────────
+\begin{titlepage}
+\thispagestyle{empty}
+\centering
+
+% Espacio para el logo de la Universidad de Murcia
+% Descomenta la línea siguiente y ajusta el nombre del archivo
+% una vez que hayas subido el logo a Overleaf:
+% \includegraphics[width=5cm]{logo_umu.png}\\[1cm]
+\vspace*{1.5cm}
+\rule{\linewidth}{0.5pt}\\[0.4cm]
+
+{\fontsize{22}{26}\selectfont\bfseries
+  Optimización de la distribución\\[6pt]
+  de reactivos en analizadores DxI-9000}\\[0.3cm]
+
+\rule{\linewidth}{0.5pt}\\[1.8cm]
+
+{\large\itshape Trabajo de la asignatura}\\[0.4cm]
+{\LARGE\bfseries Laboratorio de Optimización}\\[0.3cm]
+{\large Curso 2025/2026}\\[2cm]
+
+{\large\bfseries Universidad de Murcia}\\[0.3cm]
+{\normalsize Facultad de Informática}\\[2.5cm]
+
+\begin{tabular}{rl}
+  \textbf{Autores:} & Álvaro Espejo Martínez \\
+                    & Javier Hernández Rosique \\
+                    & Raúl Sánchez Ibáñez \\[1.2em]
+  \textbf{Datos:}   & Enero 2026 --- Laboratorio de Análisis Clínico \\
+                    & Hospital General Universitario Morales Meseguer \\
+\end{tabular}
+
+\vfill
+{\small Murcia, \the\year}
+
+\end{titlepage}
+
+% ─── Agradecimientos ───────────────────────────────────────
+\clearpage
+\thispagestyle{empty}
+\vspace*{3cm}
+{\Large\bfseries Agradecimientos}
+\vspace{1.5em}
+
+\noindent
+Queremos expresar nuestro más sincero agradecimiento a todos los miembros del
+Laboratorio de Análisis Clínicos del Hospital General Universitario Morales Meseguer
+y, en especial, a \textbf{Francisco Espejo López}, por abrirnos las puertas de sus
+instalaciones, recibirnos con tal hospitalidad y mostrarse siempre disponible para
+colaborar y ser partícipe de la elaboración del presente proyecto.
+Su generosidad y dedicación han sido fundamentales para que este trabajo pudiera
+llevarse a cabo con rigor y con una comprensión real del entorno clínico que lo motiva.
+
+\vfill
+
+% ─── Resumen (Abstract) ────────────────────────────────────
+\clearpage
+\thispagestyle{empty}
+\vspace*{1.5cm}
+{\Large\bfseries Resumen}
+\vspace{1em}
+
+\noindent
+Este trabajo presenta un modelo de programación lineal entera mixta (MILP) para optimizar
+la distribución de reactivos en los tres analizadores DxI-9000 de un laboratorio de
+análisis clínico. El problema consiste en decidir en qué analizadores instalar cada una
+de las 28 pruebas clínicas y cuántas petacas de reactivo asignar a cada posición, con el
+doble objetivo --- jerárquico y lexicográfico --- de minimizar el tiempo máximo de
+procesamiento diario (\emph{makespan}) y maximizar la co-ubicación de grupos de pruebas
+que se solicitan conjuntamente en la misma petición clínica.
+
+\medskip\noindent
+El modelo se formula en dos fases secuenciales. La Fase 1 minimiza el makespan, logrando
+un balance perfecto entre los tres analizadores (172.2\,min, 35.9\,\% de la jornada).
+La Fase 2, con el makespan fijado en su valor óptimo, maximiza la cohesión jerárquica de
+peticiones mediante variables binarias que capturan la co-ubicación de grupos de hasta
+seis pruebas, linealizadas con la generalización de McCormick para $n$ binarias. El modelo
+cuenta con 403 variables y 1\,188 restricciones y es resuelto con el solver HiGHS 1.11.0.
+
+\medskip\noindent
+La solución óptima reduce el makespan un 8.7\,\% respecto a la distribución empírica
+actual, elimina el desequilibrio de carga entre equipos y alcanza una cohesión del
+99.7\,\% (25\,804 de 25\,872 co-ocurrencias mensuales cubiertas en un único analizador).
+Un postproceso proporcional garantiza el llenado completo de las 144 posiciones de
+reactivo con factores de cobertura mínimos de 2.0$\times$ la demanda máxima en todas las
+pruebas.
+
+\medskip
+\noindent\textbf{Palabras clave:} MILP, optimización de laboratorio, analizadores clínicos,
+makespan, cohesión de peticiones, linealización AND, DxI-9000.
+
+\vfill
+
+% ─── Índice ────────────────────────────────────────────────
+\clearpage
+\thispagestyle{empty}
+\tableofcontents
+
+\clearpage
+% ============================================================
+\section{Contexto del laboratorio}
+% ============================================================
+
+\subsection{¿Qué hace este laboratorio?}
+
+El \textbf{Laboratorio de Análisis Clínico} recibe cada día cientos de muestras de sangre
+procedentes de pacientes hospitalizados y de consultas externas. Su misión es medir la
+concentración de hormonas, marcadores tumorales y vitaminas en el suero de esas muestras,
+y devolver los resultados al médico solicitante en el menor tiempo posible.
+
+El proceso comienza cuando un médico emite una \textbf{petición}: un documento —hoy
+completamente digitalizado— que especifica qué compuestos hay que medir en la muestra de
+un paciente concreto. Una petición puede contener desde una sola determinación
+(p.\,ej., ``medir TSH'') hasta diecisiete pruebas distintas; la mediana observada en enero
+de 2026 es de \textbf{2 determinaciones por petición}.
+
+Las muestras se obtienen centrifugando sangre venosa extraída en tubos de tapón rojo con
+gel separador. El centrifugado separa el suero del coágulo sólido; el suero es lo que
+realmente analizan los equipos. Cada tubo queda asociado a una petición concreta, con una
+lista de pruebas pendientes que deben realizarse antes de emitir el informe clínico.
+
+\subsection{Del paciente al resultado: el recorrido de un tubo}
+
+Una vez centrifugado, el tubo entra en la \textbf{cadena de distribución automatizada} del
+laboratorio: una cinta transportadora que lo identifica por código de barras, registra sus
+pruebas pendientes y lo dirige hacia los analizadores correctos sin intervención humana.
+
+Los tres analizadores \textbf{DxI-9000} están dispuestos en serie a lo largo de la cadena,
+formando una línea de procesamiento continua:
+
+\begin{center}
+\ttfamily\small
+\begin{tabular}{c}
+Recepción/centrifugado \\
+$\downarrow$ \\
+{[CER --- identificación]} \\
+$\downarrow$ \\
+{[DxI-9000 n.º 1] $\longrightarrow$ [DxI-9000 n.º 2] $\longrightarrow$ [DxI-9000 n.º 3]} \\
+$\downarrow$ \\
+Resultados $\rightarrow$ Historia clínica
+\end{tabular}
+\end{center}
+
+Cuando un tubo llega frente a un DxI-9000, el analizador consulta la lista de pruebas
+pendientes: si \textbf{tiene instalada} alguna de esas pruebas, retiene el tubo y la
+procesa; en caso contrario, el tubo pasa de largo. Un tubo puede ser retenido por uno,
+dos o los tres analizadores dependiendo de la distribución de sus pruebas.
+\textbf{Este reparto de pruebas entre analizadores es exactamente la decisión que el modelo
+de optimización debe tomar.}
+
+\subsection{Los tres DxI-9000: iguales pero independientes}
+
+Los tres equipos son del mismo modelo (Beckman Coulter DxI-9000) y realizan técnicamente
+las mismas pruebas. Sin embargo, en cada momento pueden tener instaladas pruebas distintas
+en cantidades distintas y procesar colas de tubos independientes.
+
+Una diferencia operativa relevante es la \textbf{capacidad de posiciones de reactivo}:
+DxI1 dispone de 50 posiciones, mientras que DxI2 y DxI3 tienen 47 cada uno (las 3
+posiciones restantes están permanentemente reservadas para muestras urgentes y no se
+incluyen en este modelo).
+
+\clearpage
+% ============================================================
+\section{Flujo de trabajo y elementos clave}
+% ============================================================
+
+\subsection{Glosario esencial}
+
+\begin{table}[H]
+\centering
+\caption{Terminología clave del laboratorio.}
+\begin{tabularx}{\linewidth}{lX}
+\toprule
+\textbf{Término} & \textbf{Definición} \\
+\midrule
+Determinación & Medición individual de un compuesto en el suero de un paciente. Unidad mínima de trabajo. \\
+Prueba & Tipo de análisis (p.\,ej., TSH, VITD, PSA). Cada prueba requiere su propio reactivo. \\
+Petición & Solicitud médica que agrupa varias determinaciones para un mismo paciente. \\
+Tubo & Recipiente físico con la muestra de suero. Lleva asociada una petición. \\
+Reactivo & Sustancia química específica que produce la reacción medible al mezclarse con el suero. \\
+Petaca de reactivo & Cartucho sellado con reactivo para un número limitado de determinaciones (50--200). \\
+Posición de reactivo & Hueco en el carrusel del analizador donde se aloja una petaca. \\
+Paso (\textit{step}) & Fase de incubación del ensayo. 1 paso: 450\,det/h; 2 pasos: 225\,det/h. \\
+Makespan & Tiempo del analizador más cargado en procesar toda su cola del día. \\
+Carro de cubetas & Componente interno con 269 posiciones dinámicas para las alícuotas de suero. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Cómo procesa un tubo el DxI-9000}
+
+Cada DxI-9000 es un \textbf{analizador de inmunoensayo quimioluminiscente}. El ciclo de
+una determinación incluye: (1) identificación del tubo, (2) aspiración de la alícuota,
+(3) incubación con el reactivo (1 o 2 fases), (4) medición de la señal, y (5) volcado
+automático al sistema de información (LIS).
+
+\begin{itemize}
+  \item \textbf{Ensayos de 1 paso:} hasta $\mathbf{450}$\,\textbf{determinaciones/hora}.
+  \item \textbf{Ensayos de 2 pasos:} hasta $\mathbf{225}$\,\textbf{determinaciones/hora}.
+\end{itemize}
+
+El cuello de botella real no es la velocidad del analizador sino la
+\textbf{disponibilidad de reactivo}: si una petaca se agota a mitad de jornada, el equipo
+queda bloqueado esperando recarga, que además requiere calibración y control de calidad.
+Por ello el número de petacas es la variable de decisión más crítica.
+
+\subsection{El recurso escaso: las posiciones de reactivo}
+
+\begin{itemize}
+  \item \textbf{DxI1:} 50 posiciones disponibles.
+  \item \textbf{DxI2 y DxI3:} 47 posiciones disponibles cada uno.
+  \item \textbf{Total del sistema:} 144 posiciones para repartir entre 28 pruebas y 3 analizadores.
+\end{itemize}
+
+El DxI-9000 selecciona la petaca por cercanía física en el carrusel; tener posiciones
+vacías penaliza el tiempo de ciclo. Por ello el laboratorio exige que
+\textbf{todas las posiciones estén siempre ocupadas}.
+
+\subsection{Las 28 pruebas clínicas}
+
+\begin{table}[H]
+\centering
+\caption{Clasificación técnica de las 28 pruebas.}
+\begin{tabular}{llll}
+\toprule
+\textbf{Tipo} & \textbf{Velocidad} & \textbf{Det/petaca} & \textbf{Pruebas} \\
+\midrule
+1 paso & 450\,det/h & 50--200$^*$ & TSH, VITD, PSA, PSAL, CA125, AFP, PTH, \\
+       &            &             & T3L, PRL, HCG, TES, INS, PEPC, COR, TIRO \\
+2 pasos & 225\,det/h & 50 & B12, FOL, T4L, CEA, CA199, CA153, \\
+        &            &    & FSH, LH, EST, PROG, TPO, ATG, SHBG \\
+\bottomrule
+\multicolumn{4}{l}{$^*$TSH: 200\,det/petaca; PSA: 100\,det/petaca; resto: 50\,det/petaca.}
+\end{tabular}
+\end{table}
+
+Las pruebas se agrupan clínicamente en tres paneles:
+\begin{itemize}
+  \item \textbf{Grupo A — Tiroideo-metabólico (alta demanda):} TSH, T4L, T3L, TPO, VITD, B12, FOL.
+  \item \textbf{Grupo B — Marcadores tumorales + PSA:} CEA, CA125, CA153, CA199, PSA, PSAL, AFP.
+  \item \textbf{Grupo C — Panel hormonal reproductor:} FSH, LH, EST, PRL, PROG, TES, HCG, INS, COR, PTH, ATG, TIRO, PEPC, SHBG.
+\end{itemize}
+
+\clearpage
+% ============================================================
+\section{Descripción del problema de optimización}
+% ============================================================
+
+\subsection{Objetivo}
+
+El modelo persigue dos objetivos de forma \textbf{jerárquica (lexicográfica)}:
+
+\begin{enumerate}
+  \item \textbf{Fase 1 — Minimizar el makespan:} distribuir las 28 pruebas entre los 3
+        analizadores y decidir cuántas petacas asignar a cada una, de forma que se minimice
+        el tiempo máximo de procesamiento diario equilibrando la carga.
+  \item \textbf{Fase 2 — Maximizar la cohesión de peticiones:} manteniendo el makespan
+        óptimo, redistribuir la asignación para que los grupos de pruebas que aparecen
+        juntos con mayor frecuencia queden instalados en el mismo analizador.
+\end{enumerate}
+
+\subsection{Decisiones a tomar}
+
+\begin{enumerate}
+  \item \textbf{¿En qué analizadores se instala cada prueba?} Una prueba puede estar en uno,
+        dos o tres analizadores simultáneamente.
+  \item \textbf{¿Cuántas petacas de cada prueba se cargan en cada analizador?}
+  \item \textbf{¿Qué grupos de pruebas quedan co-ubicados?} Las variables $w_g^{(\ell)}$
+        capturan si el grupo $g$ de nivel $\ell$ está íntegramente en el analizador $j$.
+\end{enumerate}
+
+\subsection{Factores clave}
+
+\paragraph{Cuello de botella por exceso de carga.}
+Si un analizador acumula demasiadas pruebas de alta demanda, su cola crece y el tiempo
+total de procesamiento se dispara mientras los otros equipos están infrautilizados.
+
+\paragraph{Cuello de botella por escasez de petacas.}
+Si una prueba de alta demanda tiene pocas petacas, el reactivo se agota frecuentemente y
+el analizador debe esperar a que se reponga, bloqueando el procesamiento. Cada recarga
+exige además calibración y control de calidad, consumiendo decenas de minutos adicionales.
+
+\paragraph{Fragmentación de peticiones.}
+Si las pruebas de una misma petición están repartidas entre dos analizadores, el tubo de
+suero tiene que pasar por ambos, consumiendo el doble de recursos del carro de cubetas.
+Mantener grupos de pruebas que se solicitan juntas en el mismo analizador reduce esta
+fragmentación y acelera la entrega de resultados al médico.
+
+\subsection{Restricciones del problema}
+
+\begin{table}[H]
+\centering
+\caption{Restricciones del modelo.}
+\begin{tabularx}{\linewidth}{clX}
+\toprule
+\textbf{\#} & \textbf{Restricción} & \textbf{Motivo} \\
+\midrule
+R1  & Petacas por analizador $\leq$ posiciones disponibles & Límite físico del carrusel \\
+R2  & Petacas suficientes para la demanda enrutada & Evitar agotamiento de reactivo \\
+R3  & Toda la demanda diaria cubierta & Ninguna determinación sin procesar \\
+R4  & Enrutar solo si la prueba está instalada & Restricción lógica \\
+R5  & Coherencia petacas $\leftrightarrow$ presencia & Consistencia del modelo \\
+R6  & Mayoría de pruebas en $\geq 2$ analizadores & Contingencia operativa \\
+R6b & Big Six en los \textbf{3 analizadores} & Pruebas de mayor volumen \\
+R6c & Pruebas con dem. $< 20$\,det/día en $\leq 2$ analizadores & Coste calibración $>$ beneficio \\
+R7  & PSAL $\leq$ PSA por analizador & PSAL siempre con PSA \\
+R8  & Makespan $\geq$ carga de cada analizador & Definición del makespan \\
+R9  & $|\text{pruebas 1 paso}_j - \text{pruebas 1 paso}_k| \leq \delta$ & Equilibrio de velocidades \\
+R10 & Makespan $\leq 8$\,h & Jornada laboral \\
+R11 & Makespan $\leq T^*$ (solo Fase 2) & No empeorar la Fase 1 \\
+R15--R16 & Linealización de $w_g^{(\ell)}$ (AND de $n$ binarias) & Reemplaza no-linealidad \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\clearpage
+% ============================================================
+\section{Análisis exploratorio de los datos}
+% ============================================================
+
+\subsection{Demanda diaria por prueba (enero 2026, 22 días laborables)}
+
+\begin{table}[H]
+\centering
+\caption{Estadísticos de demanda por prueba (enero 2026).}
+\small
+\begin{tabular}{lrrrrrrc}
+\toprule
+\textbf{Prueba} & \textbf{Pasos} & \textbf{Det/pet.} & \textbf{Media/día} & \textbf{Mín} & \textbf{Máx} & \textbf{CV (\%)} & \textbf{Pet. mín$^*$} \\
+\midrule
+TSH   & 1 & 200 & 405.4 & 0 & 765 & 78.2  & 3 \\
+VITD  & 1 &  50 & 170.8 & 0 & 322 & 77.8  & 4 \\
+B12   & 2 &  50 & 153.5 & 0 & 300 & 77.7  & 4 \\
+FOL   & 2 &  50 & 126.1 & 0 & 260 & 77.9  & 3 \\
+T4L   & 2 &  50 & 118.2 & 0 & 240 & 78.3  & 3 \\
+PSA   & 1 & 100 &  77.7 & 0 & 149 & 78.5  & 1 \\
+CEA   & 2 &  50 &  41.7 & 0 &  88 & 78.6  & 1 \\
+FSH   & 2 &  50 &  21.5 & 0 &  45 & 80.4  & 1 \\
+TES   & 1 &  50 &  21.4 & 0 &  43 & 79.5  & 1 \\
+CA153 & 2 &  50 &  19.7 & 0 &  45 & 80.6  & 1 \\
+CA125 & 1 &  50 &  17.5 & 0 &  41 & 80.4  & 1 \\
+LH    & 2 &  50 &  17.5 & 0 &  41 & 81.9  & 1 \\
+PTH   & 1 &  50 &  17.1 & 0 &  74 & 102.1 & 1 \\
+COR   & 1 &  50 &  17.0 & 0 &  35 & 79.1  & 1 \\
+T3L   & 1 &  50 &  15.7 & 0 &  37 & 85.6  & 1 \\
+PRL   & 1 &  50 &  13.6 & 0 &  32 & 81.3  & 1 \\
+CA199 & 2 &  50 &  13.6 & 0 &  28 & 79.3  & 1 \\
+TPO   & 2 &  50 &  12.8 & 0 &  36 & 85.4  & 1 \\
+PSAL  & 1 &  50 &  12.6 & 0 &  32 & 85.3  & 1 \\
+EST   & 2 &  50 &  12.3 & 0 &  28 & 85.0  & 1 \\
+PROG  & 2 &  50 &   8.8 & 0 &  22 & 86.5  & 1 \\
+INS   & 1 &  50 &   6.7 & 0 &  17 & 88.4  & 1 \\
+AFP   & 1 &  50 &   6.2 & 0 &  15 & 86.3  & 1 \\
+HCG   & 1 &  50 &   2.7 & 0 &   8 & 100.1 & 1 \\
+TIRO  & 1 &  50 &   2.5 & 0 &  10 & 102.6 & 1 \\
+PEPC  & 1 &  50 &   2.5 & 0 &   8 & 103.1 & 1 \\
+ATG   & 2 &  50 &   1.5 & 0 &   6 & 111.2 & 1 \\
+SHBG  & 2 &  50 &   1.2 & 0 &   4 & 122.0 & 1 \\
+\bottomrule
+\multicolumn{8}{l}{$^*$Petacas mínimas en un único analizador: $\lceil d_i^{\max}/c_i \rceil$.
+Total mínimo: 57 de 144.}
+\end{tabular}
+\end{table}
+
+El modelo utiliza el \textbf{máximo diario observado} como escenario de planificación
+conservador: la distribución resultante puede absorber el peor día registrado sin recargar
+reactivos sobre la marcha. El coeficiente de variación elevado (78--122\,\%) refleja la
+inclusión de festivos con volumen muy reducido; usar la media infraestimaría la carga
+de un día laboral normal.
+
+\subsection{Equilibrio de carga por tipo de paso}
+
+\begin{table}[H]
+\centering
+\caption{Carga total máxima por tipo de paso.}
+\begin{tabular}{lrrr}
+\toprule
+\textbf{Tipo} & \textbf{Pruebas} & \textbf{Demanda total máx.} & \textbf{Tiempo mínimo$^*$} \\
+\midrule
+1 paso (450\,det/h) & 15 & $\approx$1\,623\,det/día & $\approx$3.61\,h \\
+2 pasos (225\,det/h) & 13 & $\approx$1\,096\,det/día & $\approx$4.87\,h \\
+\bottomrule
+\multicolumn{4}{l}{$^*$Si todas las pruebas del tipo estuviesen en un único analizador.}
+\end{tabular}
+\end{table}
+
+Con 3 analizadores compartiendo carga: tiempo esperado $\approx \max(1623/1350,\,1096/675) \approx 1.62$\,h.
+El makespan óptimo obtenido es \textbf{172.2\,min (2.87\,h)}, dentro de la jornada de 8\,h
+(35.9\,\% de utilización).
+
+\subsection{Co-ocurrencias}
+
+Las co-ocurrencias miden cuántas peticiones mensuales se verían penalizadas si un par de
+pruebas está repartido entre distintos equipos.
+
+\paragraph{El efecto ``Big Six''.}
+Los 10 pares más frecuentes del mes están completamente dominados por las 6 pruebas de
+mayor volumen --- TSH, VITD, B12, FOL, T4L y PSA (\textbf{Big Six}):
+
+\begin{table}[H]
+\centering
+\caption{Top 10 pares co-ocurrentes globales (enero 2026).}
+\begin{tabular}{lr}
+\toprule
+\textbf{Par} & \textbf{Co-oc./mes} \\
+\midrule
+TSH + VITD & 3\,954 \\
+FOL + B12  & 3\,758 \\
+TSH + B12  & 3\,659 \\
+TSH + T4L  & 3\,609 \\
+FOL + TSH  & 2\,901 \\
+B12 + VITD & 2\,458 \\
+FOL + VITD & 1\,782 \\
+PSA + TSH  & 1\,652 \\
+T4L + B12  & 1\,057 \\
+T4L + VITD &   989  \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Esta dominancia enmascara la estructura de co-ocurrencia del resto de pruebas. Por ello se
+aplica un tratamiento diferenciado:
+\begin{itemize}
+  \item \textbf{Big Six $\to$ restricción de presencia (R6b):} se fuerza $x_{ij}=1$ para
+        toda $i \in I_B$ y todo $j \in J$. Las 6 pruebas están siempre en los 3
+        analizadores, garantizando automáticamente la co-ubicación de cualquier par del
+        Big Six en todos los equipos.
+  \item \textbf{Resto de pruebas $\to$ objetivo de cohesión (Fase 2):} los grupos
+        co-ocurrentes entre pruebas no Big Six se incluyen como parámetros $f_g^{(\ell)}$
+        y se maximizan en la función objetivo multi-nivel.
+\end{itemize}
+
+Eliminando el Big Six del análisis, emerge la estructura clínica real: un
+\textbf{grupo hormonal reproductor} (FSH, LH, EST, PRL, TES, PROG) y un
+\textbf{grupo oncológico} (CEA, CA125, CA153, CA199) con fuertes co-solicitudes internas.
+
+\begin{table}[H]
+\centering
+\caption{Top 10 pares co-ocurrentes excluyendo Big Six (enero 2026).}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Par} & \textbf{Co-oc./mes} & \textbf{Grupo clínico} \\
+\midrule
+CEA + CA153  & 590 & Oncológico \\
+FSH + LH     & 500 & Hormonal   \\
+CEA + CA199  & 381 & Oncológico \\
+FSH + EST    & 368 & Hormonal   \\
+LH + EST     & 336 & Hormonal   \\
+LH + PRL     & 305 & Hormonal   \\
+TES + LH     & 305 & Hormonal   \\
+FSH + PRL    & 301 & Hormonal   \\
+FSH + TES    & 277 & Hormonal   \\
+FSH + PROG   & 258 & Hormonal   \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El modelo trabaja con \textbf{50 grupos} en total: los \textbf{10 más frecuentes por cada
+nivel} de agrupación (parejas, tripletas, cuartetos, quintuplos y sextuplos). El quíntuplo
+más frecuente del panel hormonal es:
+\[
+  \{\text{EST},\,\text{FSH},\,\text{LH},\,\text{PROG},\,\text{TES}\}
+  \quad\longrightarrow\quad 139\text{ co-ocurrencias/mes.}
+\]
+
+\clearpage
+% ============================================================
+\section{Formulación matemática del modelo}
+% ============================================================
+
+\subsection{Conjuntos e índices}
+
+\begin{table}[H]
+\centering
+\caption{Conjuntos del modelo.}
+\begin{tabularx}{\linewidth}{lX}
+\toprule
+\textbf{Símbolo} & \textbf{Descripción} \\
+\midrule
+$I$ & Conjunto de 28 pruebas clínicas. \\
+$J$ & Conjunto de 3 analizadores: $\{\text{DxI1},\text{DxI2},\text{DxI3}\}$. \\
+$I_E \subset I$ & Pruebas exentas de contingencia (bajo volumen): $\{\text{HCG, TIRO, PEPC, ATG, SHBG}\}$. \\
+$I_1 \subset I$ & Pruebas de 1 paso: $\{\text{TSH, VITD, PSA, PSAL, CA125, AFP, PTH, T3L, PRL, HCG, TES, INS, PEPC, COR, TIRO}\}$. \\
+$I_B \subset I$ & Big Six (forzadas en los 3 analizadores): $\{\text{TSH, VITD, B12, FOL, T4L, PSA}\}$. \\
+$\mathcal{G}^{(\ell)}$ & Grupos de nivel $\ell$, con $\ell \in \{2,3,4,5,6\}$. $|\mathcal{G}^{(\ell)}| = 10$ (top 10 por frecuencia). \\
+$C_g^{(\ell)} \subset I \setminus I_B$ & Pruebas que componen el grupo $g \in \mathcal{G}^{(\ell)}$. $|C_g^{(\ell)}| = \ell$. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Parámetros}
+
+\begin{table}[H]
+\centering
+\caption{Parámetros del modelo.}
+\begin{tabularx}{\linewidth}{llX}
+\toprule
+\textbf{Símbolo} & \textbf{Unidades} & \textbf{Descripción} \\
+\midrule
+$\text{cap}_j$ & posiciones & Posiciones de reactivo disponibles en el analizador $j$. \\
+$c_i$ & det/petaca & Determinaciones por petaca de la prueba $i$. \\
+$v_i$ & det/h & Velocidad máxima de procesamiento. \\
+$d_i$ & det/día & Demanda máxima diaria. \\
+$H$ & h & Horas de trabajo disponibles por día. \\
+$\delta$ & --- & Diferencia máxima de pruebas de 1 paso entre analizadores. \\
+$f_g^{(\ell)}$ & peticiones/mes & Co-ocurrencias mensuales del grupo $g$ de nivel $\ell$. \\
+$\tau$ & det/día & Umbral de bajo volumen para R6c ($\tau = 20$). \\
+$T^*$ & h & Makespan óptimo de la Fase 1 (fija la cota en Fase 2). \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Valores de los parámetros de infraestructura:}
+\[
+  \text{cap}_{\text{DxI1}} = 50, \qquad
+  \text{cap}_{\text{DxI2}} = 47, \qquad
+  \text{cap}_{\text{DxI3}} = 47
+\]
+\[
+  H = 8\text{\,h/día}, \qquad \delta = 3
+\]
+\[
+  c_{\text{TSH}} = 200, \qquad c_{\text{PSA}} = 100, \qquad
+  c_i = 50 \quad \forall\, i \notin \{\text{TSH},\,\text{PSA}\}
+\]
+
+\subsection{Variables de decisión}
+
+\begin{table}[H]
+\centering
+\caption{Variables de decisión del modelo.}
+\begin{tabularx}{\linewidth}{llX}
+\toprule
+\textbf{Variable} & \textbf{Tipo} & \textbf{Descripción} \\
+\midrule
+$p_{ij} \in \mathbb{Z}_{\geq 0}$ & Entera & Petacas de la prueba $i$ cargadas en el analizador $j$. \\
+$x_{ij} \in \{0,1\}$ & Binaria & 1 si la prueba $i$ está disponible en el analizador $j$. \\
+$y_{ij} \in [0,1]$ & Continua & Fracción de la demanda de $i$ procesada en $j$. \\
+$T_{\max} \geq 0$ & Continua & Makespan: tiempo del analizador más cargado (horas). \\
+$w_g^{(\ell)}[j] \in \{0,1\}$ & Binaria & 1 si \textbf{todas} las pruebas del grupo $g \in \mathcal{G}^{(\ell)}$ están en $j$. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Relaciones entre variables:}
+$x_{ij} = 1 \Rightarrow p_{ij} \geq 1$;\ \
+$x_{ij} = 0 \Rightarrow p_{ij} = 0,\, y_{ij} = 0$;\ \
+$y_{ij} > 0$ solo si $x_{ij} = 1$.
+
+\subsection{Función objetivo (optimización lexicográfica en dos fases)}
+
+\paragraph{Fase 1 — Minimizar el makespan:}
+\[
+  \min \quad T_{\max}
+\]
+Minimizar el tiempo del analizador más cargado equivale a \textbf{equilibrar la carga}
+entre los tres equipos.
+
+\paragraph{Fase 2 — Maximizar la cohesión jerárquica:}
+\[
+  \max \quad \sum_{\ell=2}^{6}\ \sum_{g \in \mathcal{G}^{(\ell)}}\ \sum_{j \in J}
+             f_g^{(\ell)} \cdot w_g^{(\ell)}[j]
+\]
+Para cada grupo $g$ de nivel $\ell$ y analizador $j$, se suma $f_g^{(\ell)}$ cada vez
+que todas las pruebas del grupo están juntas en $j$. La restricción R11
+($T_{\max} \leq T^*$) garantiza que la búsqueda de cohesión no empeora el makespan.
+
+Usar grupos de hasta 6 pruebas permite capturar directamente el valor de mantener paneles
+clínicos completos co-ubicados: si el panel hormonal $\{\text{EST,FSH,LH,PROG,PRL,TES}\}$
+queda en el mismo analizador, el beneficio se contabiliza en cinco niveles de agrupación
+simultáneamente.
+
+\subsection{Restricciones}
+
+\paragraph{R1 — Capacidad de posiciones:}
+\[
+  \sum_{i \in I} p_{ij} \leq \text{cap}_j \qquad \forall\, j \in J
+\]
+
+\paragraph{R2 — Petacas suficientes para la demanda enrutada:}
+\[
+  p_{ij} \cdot c_i \geq y_{ij} \cdot d_i \qquad \forall\, i \in I,\ \forall\, j \in J
+\]
+
+\paragraph{R3 — Cobertura total de la demanda:}
+\[
+  \sum_{j \in J} y_{ij} = 1 \qquad \forall\, i \in I
+\]
+
+\paragraph{R4 — Enrutamiento solo si la prueba está instalada:}
+\[
+  y_{ij} \leq x_{ij} \qquad \forall\, i \in I,\ \forall\, j \in J
+\]
+
+\paragraph{R5 — Coherencia entre petacas y presencia:}
+\[
+  p_{ij} \leq \text{cap}_j \cdot x_{ij} \qquad \forall\, i \in I,\ \forall\, j \in J
+\]
+\[
+  x_{ij} \leq p_{ij} \qquad \forall\, i \in I,\ \forall\, j \in J
+\]
+La primera garantiza que si $x_{ij}=0$ entonces $p_{ij}=0$; la segunda que si
+$x_{ij}=1$ entonces $p_{ij} \geq 1$.
+
+\paragraph{R6 — Plan de contingencia:}
+\[
+  \sum_{j \in J} x_{ij} \geq 2 \qquad \forall\, i \in I \setminus I_E
+\]
+\[
+  \sum_{j \in J} x_{ij} \geq 1 \qquad \forall\, i \in I_E
+\]
+Las pruebas no exentas deben estar en al menos dos analizadores. Las pruebas de muy bajo
+volumen ($I_E$) quedan exentas: duplicarlas no es coste-efectivo.
+
+\paragraph{R6b — Big Six en los tres analizadores:}
+\[
+  x_{ij} = 1 \qquad \forall\, i \in I_B,\ \forall\, j \in J
+\]
+Las seis pruebas de mayor volumen están forzadas en los 3 analizadores, garantizando su
+co-ubicación universal por restricción y liberando el objetivo de Fase 2 para cohesionar
+el resto del panel.
+
+\paragraph{R6c — Pruebas de bajo volumen en máximo dos analizadores:}
+\[
+  \sum_{j \in J} x_{ij} \leq 2 \qquad \forall\, i \in I \setminus I_B :\ d_i < \tau
+\]
+donde $\tau = 20$\,det/día. El coste acumulado de calibración en un tercer equipo supera el
+beneficio para pruebas de muy bajo volumen. Pruebas afectadas: INS (17), AFP (15),
+HCG (8), TIRO (10), PEPC (8), ATG (6), SHBG (4\,det/día).
+
+\paragraph{R7 — Sincronización PSA / PSAL:}
+\[
+  x_{\text{PSAL},j} \leq x_{\text{PSA},j} \qquad \forall\, j \in J
+\]
+PSAL solo puede estar en un analizador donde PSA también esté disponible. PSA puede estar
+sin PSAL (hay peticiones que no solicitan la fracción libre).
+
+\paragraph{R8 — Definición del makespan:}
+\[
+  \sum_{i \in I} \frac{y_{ij} \cdot d_i}{v_i} \leq T_{\max} \qquad \forall\, j \in J
+\]
+
+\paragraph{R9 — Equilibrio de pruebas de 1 paso:}
+\[
+  \left|\sum_{i \in I_1} x_{ij} - \sum_{i \in I_1} x_{ik}\right| \leq \delta
+  \qquad \forall\, j,k \in J,\ j < k
+\]
+Evita que un analizador acumule pruebas de 2 pasos mientras otro acumula las de 1 paso.
+
+\paragraph{R10 — Jornada laboral:}
+\[
+  T_{\max} \leq H
+\]
+
+\paragraph{R11 — Fijación del makespan entre fases:}
+\[
+  T_{\max} \leq T^* \qquad (\text{activa solo en Fase 2})
+\]
+En Fase 1 esta restricción es inactiva ($T^* = +\infty$). Al inicio de la Fase 2 se asigna
+$T^* \leftarrow T_{\max}^{\text{Fase 1}}$.
+
+\paragraph{R15--R16 — Linealización de $w_g^{(\ell)}$ (AND de $n$ binarias):}
+
+La variable $w_g^{(\ell)}[j]$ debe ser 1 si y solo si todas las $\ell$ pruebas del grupo
+$g$ están instaladas en $j$:
+\[
+  w_g^{(\ell)}[j] = \bigwedge_{i \in C_g^{(\ell)}} x_{ij}
+\]
+
+El AND lógico se linealiza con dos familias estándar:
+
+\textbf{R15 — Cota superior} (si falta alguna prueba del grupo, $w = 0$):
+\[
+  w_g^{(\ell)}[j] \leq x_{ij}
+  \qquad \forall\, g \in \mathcal{G}^{(\ell)},\ \forall\, i \in C_g^{(\ell)},\
+  \forall\, j \in J,\ \forall\, \ell
+\]
+
+\textbf{R16 — Cota inferior} (si todas las pruebas están, $w$ debe ser 1):
+\[
+  w_g^{(\ell)}[j] \geq \sum_{i \in C_g^{(\ell)}} x_{ij} - (\ell - 1)
+  \qquad \forall\, g \in \mathcal{G}^{(\ell)},\ \forall\, j \in J,\ \forall\, \ell
+\]
+
+Esta formulación generaliza la relajación de McCormick (válida solo para $\ell = 2$) a
+grupos de cualquier tamaño con solo dos familias de restricciones, frente a las
+$2^{\ell}-1$ inecuaciones de la envoltura convexa completa.
+
+\subsection{Formulación compacta}
+
+\[
+  \underset{\text{Fase 1}}{\min}\ T_{\max}
+  \quad \longrightarrow \quad
+  \underset{\text{Fase 2}}{\max}
+  \sum_{\ell=2}^{6}\sum_{g \in \mathcal{G}^{(\ell)}}\sum_{j\in J} f_g^{(\ell)}\,w_g^{(\ell)}[j]
+\]
+
+\[
+\text{s.a.} \quad
+\begin{dcases}
+\displaystyle\sum_{i} p_{ij} \leq \text{cap}_j & \forall j \\[6pt]
+p_{ij}\, c_i \geq y_{ij}\, d_i & \forall i,j \\[6pt]
+\displaystyle\sum_{j} y_{ij} = 1 & \forall i \\[6pt]
+y_{ij} \leq x_{ij} & \forall i,j \\[6pt]
+p_{ij} \leq \text{cap}_j\, x_{ij},\quad x_{ij} \leq p_{ij} & \forall i,j \\[6pt]
+\displaystyle\sum_{j} x_{ij} \geq 2 & \forall i \notin I_E \\[6pt]
+\displaystyle\sum_{j} x_{ij} \geq 1 & \forall i \in I_E \\[6pt]
+x_{ij} = 1 & \forall i \in I_B,\ \forall j \\[6pt]
+\displaystyle\sum_{j} x_{ij} \leq 2 & \forall i \notin I_B :\ d_i < \tau \\[6pt]
+x_{\text{PSAL},j} \leq x_{\text{PSA},j} & \forall j \\[6pt]
+\displaystyle\sum_{i} \dfrac{y_{ij} d_i}{v_i} \leq T_{\max} & \forall j \\[6pt]
+\left|\displaystyle\sum_{i \in I_1} x_{ij} - \sum_{i \in I_1} x_{ik}\right| \leq \delta & \forall j < k \\[6pt]
+T_{\max} \leq H \\[6pt]
+T_{\max} \leq T^* \\[6pt]
+w_g^{(\ell)}[j] \leq x_{ij} & \forall \ell,\ g,\ i \in C_g^{(\ell)},\ j \\[6pt]
+w_g^{(\ell)}[j] \geq \displaystyle\sum_{i \in C_g^{(\ell)}} x_{ij} - (\ell-1) & \forall \ell,\ g,\ j \\[6pt]
+p_{ij} \in \mathbb{Z}_{\geq 0},\quad x_{ij},\,w_g^{(\ell)}[j] \in \{0,1\},\quad y_{ij} \in [0,1],\quad T_{\max} \geq 0
+\end{dcases}
+\]
+
+\subsection{Clasificación del modelo}
+
+El modelo es un \textbf{MILP} (\textit{Mixed-Integer Linear Program}): variables continuas
+($y_{ij}$, $T_{\max}$), enteras ($p_{ij}$) y binarias ($x_{ij}$, $w_g^{(\ell)}[j]$),
+con todas las restricciones y objetivos \textbf{lineales}.
+
+\begin{table}[H]
+\centering
+\caption{Dimensión del problema ($|I|=28$, $|J|=3$, $|\mathcal{G}^{(\ell)}|=10$).}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Elemento} & \textbf{Cálculo} & \textbf{Cantidad} \\
+\midrule
+Var. binarias $x_{ij}$ & $28 \times 3$ & 84 \\
+Var. binarias $w_g^{(\ell)}[j]$ & $5 \times 10 \times 3$ & 150 \\
+Var. enteras $p_{ij}$ & $28 \times 3$ & 84 \\
+Var. continuas $y_{ij}$ y $T_{\max}$ & $28 \times 3 + 1$ & 85 \\
+\textbf{Total variables} & & \textbf{403} \\
+\midrule
+R1 & $3$ & 3 \\
+R2 & $28 \times 3$ & 84 \\
+R3 & $28$ & 28 \\
+R4 & $28 \times 3$ & 84 \\
+R5 (R5a + R5b) & $2 \times 28 \times 3$ & 168 \\
+R6 & $28$ & 28 \\
+R6b & $6 \times 3$ & 18 \\
+R6c & 7 pruebas con $d_i < 20$, excluido $I_B$ & 7 \\
+R7 & $3$ & 3 \\
+R8 & $3$ & 3 \\
+R9 & $2 \times \binom{3}{2}$ & 6 \\
+R10 & 1 & 1 \\
+R11 & 1 & 1 \\
+R15 — cota superior $w$ & $10 \times (2{+}3{+}4{+}5{+}6) \times 3$ & 600 \\
+R16 — cota inferior $w$ & $5 \times 10 \times 3$ & 150 \\
+\textbf{Total restricciones} & & \textbf{1\,188} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Reducir a top 10 por nivel recorta el modelo casi a la mitad en variables de co-ubicación
+(300 $\to$ 150) y restricciones de linealización (1\,500 $\to$ 750), manteniendo la
+representatividad al conservar únicamente los grupos con mayor impacto clínico.
+
+\subsection{Nota sobre la variable de enrutamiento $y_{ij}$}
+
+La variable $y_{ij}$ es una \textbf{abstracción de planificación}: representa la fracción
+de la demanda diaria de la prueba $i$ que se diseña para el analizador $j$. En la
+operativa real, esta distribución emerge del enrutamiento automático de la cadena. El modelo
+usa $y_{ij}$ para calcular la carga de forma lineal, evitando la no-linealidad que
+aparecería si se modelase el reparto proporcional a petacas.
+
+\clearpage
+% ============================================================
+\section{Instrucciones de uso (AMPL)}
+% ============================================================
+
+\subsection{Archivos del modelo}
+
+\begin{table}[H]
+\centering
+\caption{Archivos del proyecto AMPL.}
+\begin{tabularx}{\linewidth}{lX}
+\toprule
+\textbf{Archivo} & \textbf{Contenido} \\
+\midrule
+\texttt{modelo\_dxi.mod} & Definición del modelo AMPL: conjuntos, parámetros, variables, objetivos y restricciones. \\
+\texttt{datos\_dxi.dat} & Parámetros numéricos: infraestructura, demandas y los 50 grupos de co-ocurrencia (top 10 por nivel, niveles 2--6). \\
+\texttt{run\_dxi.run} & Script de ejecución: resuelve las dos fases, imprime resultados y ejecuta el postproceso proporcional. El flujo completo es autocontenido. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\texttt{postproceso.py} es un script Python auxiliar que implementa la misma lógica de
+distribución proporcional como referencia para verificación independiente, pero
+\textbf{no es necesario ejecutarlo}: \texttt{run\_dxi.run} ya incorpora el postproceso.
+
+\subsection{Ejecución}
+
+\begin{lstlisting}[language={},caption={Desde la consola interactiva de AMPL.}]
+ampl: include run_dxi.run;
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash,caption={Desde terminal (línea de comandos).}]
+ampl run_dxi.run
+\end{lstlisting}
+
+\subsection{Cambiar el solver}
+
+En \texttt{run\_dxi.run}, modificar la línea:
+\begin{lstlisting}[language={}]
+option solver cplex;   # -> glpk, highs, gurobi, cbc...
+\end{lstlisting}
+
+\subsection{Demanda usada en el modelo}
+
+El archivo \texttt{datos\_dxi.dat} utiliza los \textbf{máximos diarios observados} como
+valores del parámetro \texttt{dem}. Para experimentar con la demanda media, sustituir el
+bloque \texttt{param dem} por las medias de la tabla~4.1.
+
+\subsection{Modificar el parámetro de equilibrio $\delta$}
+
+\begin{lstlisting}[language={}]
+param delta := 2;   # mayor equilibrio de pasos 1/2
+param delta := 5;   # mayor flexibilidad
+\end{lstlisting}
+
+\subsection{Postproceso: llenado proporcional de posiciones}
+
+Tras las dos fases de AMPL, las posiciones sobrantes se distribuyen mediante el siguiente
+algoritmo:
+
+\textbf{Paso 1 — Mínimo operativo garantizado.}
+Para cada prueba $i$ instalada en el analizador $j$:
+\[
+  p_{ij}^{\min} = \max\!\left(1,\ \left\lceil \frac{y_{ij} \cdot d_i}{c_i} \right\rceil\right)
+\]
+
+\textbf{Paso 2 — Reparto proporcional de huecos sobrantes.}
+Sea $E_j = \text{cap}_j - \sum_i p_{ij}^{\min}$ las posiciones libres tras el paso 1.
+Cada prueba instalada con $y_{ij} > 0$ recibe:
+\[
+  \text{extra}_{ij} = E_j \cdot
+  \frac{y_{ij} \cdot d_i}{\displaystyle\sum_{\substack{k:\,x_{kj}=1 \\ y_{kj}>0}} y_{kj} \cdot d_k}
+\]
+Los valores se redondean por la parte entera inferior; los residuos se asignan a las pruebas
+con mayor parte fraccionaria. En caso de empate, el desempate se resuelve por orden de
+aparición en el conjunto \texttt{PRUEBAS} (\texttt{ord()}), garantizando un orden total y
+evitando sobreasignación. El resultado satisface exactamente $\sum_i p_{ij} = \text{cap}_j$.
+
+\textbf{Justificación:} las pruebas con mayor demanda reciben más petacas extra, de modo que
+si un analizador cae, los restantes tienen suficiente capacidad de reactivo para absorber
+el trabajo sin recargas adicionales.
+
+\subsection{Interpretación de los resultados}
+
+El flujo completo (AMPL + postproceso) produce los siguientes bloques de salida:
+
+\textbf{Fase 1 — Makespan mínimo:}
+\begin{enumerate}
+  \item \textbf{Estado de la solución} y \textbf{makespan óptimo} en horas y minutos.
+  \item \textbf{Carga por analizador:} posiciones usadas, tiempo de procesamiento y
+        porcentaje de la jornada.
+  \item \textbf{Asignación detallada:} para cada analizador, qué pruebas están instaladas,
+        cuántas petacas tienen, qué fracción de demanda gestionan y cuánto tiempo consumen.
+  \item \textbf{Tabla de contingencia:} en cuántos analizadores está cada prueba (columna
+        \texttt{nDxI}) y petacas en cada uno.
+  \item \textbf{Balance de pasos:} distribución de pruebas de 1 y 2 pasos entre analizadores.
+  \item \textbf{Uso total de posiciones:} posiciones usadas vs.\ disponibles vs.\ libres.
+  \item \textbf{Verificación PSA/PSAL:} comprueba que PSAL no está en ningún analizador
+        donde PSA esté ausente (condición $x_{\text{PSAL},j} \leq x_{\text{PSA},j}$).
+\end{enumerate}
+
+\textbf{Fase 2 — Cohesión máxima:}
+\begin{enumerate}[resume]
+  \item \textbf{Puntuación de cohesión:} co-ocurrencias mensuales cubiertas por un único
+        analizador, expresadas como valor absoluto y porcentaje sobre el máximo teórico.
+  \item \textbf{Tabla de pares co-ubicados:} para cada par $(i,k)$, indica en qué
+        analizador(es) quedaron juntos o si resultaron fragmentados.
+  \item \textbf{Cohesión por analizador:} número de pares co-ubicados y score parcial
+        de cada DxI.
+\end{enumerate}
+
+\textbf{Postproceso proporcional:}
+\begin{enumerate}[resume]
+  \item \textbf{Distribución final de petacas:} tabla por analizador con petacas mínimas,
+        petacas finales, posiciones extra añadidas y buffer de capacidad respecto a la
+        demanda máxima.
+\end{enumerate}
+
+\clearpage
+% ============================================================
+\section{Resultados de la solución óptima}
+% ============================================================
+
+\subsection{Comparación con la distribución actual del laboratorio}
+
+\begin{table}[H]
+\centering
+\caption{Comparación entre la distribución empírica actual y la solución óptima.}
+\begin{tabularx}{\linewidth}{Xcc>{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Métrica} & \textbf{Actual} & \textbf{Óptima} & \textbf{Mejora} \\
+\midrule
+Makespan (dem. media)$^\dagger$ & $\approx$91.8\,min & \textbf{83.8\,min} & $-8$\,min ($-8.7$\,\%) \\
+Balance de carga (media) & 91.8/90.5/69.2\,min & 83.8/83.8/83.8\,min & Desv. $22.6 \to \mathbf{0}$\,min \\
+Makespan (dem. máxima) & no optimizada & \textbf{172.2\,min} & --- \\
+R6b Big Six en 3 máquinas & Cumplida & Garantizada por R6b & Formalizada \\
+R7 PSA/PSAL & Compatible & Cumplida & --- \\
+R6 Contingencia INS & \textbf{VIOLACIÓN} (1 máquina) & Cumplida (2 máquinas) & Corregida \\
+Cohesión de peticiones$^\ddagger$ & Sin garantía formal & \textbf{99.7\,\%} (25\,804/25\,872) & Optimizada \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{small}
+$^\dagger$\,\textit{Comparación de makespan:} las filas de demanda media comparan ambas
+distribuciones en igualdad de condiciones (mismo escenario de carga). El modelo de
+producción usa demanda máxima (172.2\,min), pero la distribución actual no fue diseñada
+bajo ese escenario. La mejora de balance (desvío 22.6 $\to$ 0\,min) es válida en ambos
+escenarios.
+
+$^\ddagger$\,\textit{Cohesión:} el score 25\,804/25\,872 = 99.7\,\% integra los top 10
+grupos de cinco niveles. Parejas, tripletas y cuartetos alcanzan el 100\,\%. La pérdida
+del 0.3\,\% se concentra en tres sextuplos (SEXT\_8/9/10, que contienen INS) y un
+quintuplo (QUIN\_7, que contiene AFP), limitados por R6c a solo 2 analizadores.
+\end{small}
+
+\subsection{Resultados del modelo (demanda máxima)}
+
+\textbf{Solver:} HiGHS 1.11.0 --- solución óptima en 217 iteraciones símplex (Fase 1)
+$+$ 195 (Fase 2), 1 nodo de ramificación en cada fase.
+
+\medskip
+\textbf{Fase 1 — Makespan óptimo:} $\mathbf{2.8696\text{ h} = 172.2\text{ min}}$
+(35.9\,\% de la jornada de 8\,h). Los tres analizadores quedan exactamente igualados ---
+\textbf{balance perfecto}.
+
+\begin{table}[H]
+\centering
+\caption{Carga por analizador (Fase 1).}
+\begin{tabular}{cccc}
+\toprule
+\textbf{Analizador} & \textbf{Pos. usadas} & \textbf{Carga} & \textbf{\% Jornada} \\
+\midrule
+DxI1 & 23 & 172.2\,min & 35.9\,\% \\
+DxI2 & 27 & 172.2\,min & 35.9\,\% \\
+DxI3 & 25 & 172.2\,min & 35.9\,\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Fase 2 — Cohesión: 25\,804 / 25\,872 = 99.7\,\%.}
+Parejas (10\,863), tripletas (6\,990) y cuartetos (4\,896) alcanzan el 100\,\% --- todos
+sus grupos quedan co-ubicados en los \textbf{tres analizadores}. La pérdida del 0.3\,\%
+afecta solo a:
+\begin{itemize}
+  \item Tres sextuplos (SEXT\_8, SEXT\_9, SEXT\_10), que contienen INS (limitado a 2
+        analizadores por R6c).
+  \item El quintuplo QUIN\_7 (AFP CA125 CA153 CA199 CEA), cuyo componente AFP está
+        limitado a 2 analizadores por R6c.
+\end{itemize}
+
+\textbf{Verificación PSA/PSAL (Fase 2):}
+DxI1: PSA=1 PSAL=1 $\to$ OK $\mid$ DxI2: PSA=1 PSAL=0 $\to$ OK $\mid$
+DxI3: PSA=1 PSAL=1 $\to$ OK.
+La restricción $x_{\text{PSAL},j} \leq x_{\text{PSA},j}$ se cumple en todos los
+analizadores.
+
+\subsection{Distribución de pruebas por número de analizadores}
+
+El resultado final (Fase 2) instala 16 pruebas en los 3 analizadores, 7 en 2 y 5 en 1:
+
+\begin{table}[H]
+\centering
+\caption{Asignación final de pruebas por analizador (Fase 2).}
+\small
+\begin{tabular}{lrccccc}
+\toprule
+\textbf{Prueba} & \textbf{Dem. máx} & \textbf{DxI1} & \textbf{DxI2} & \textbf{DxI3} & \textbf{N.º máq.} & \textbf{Nota} \\
+\midrule
+TSH   & 765 & \cmark & \cmark & \cmark & 3 & Big Six \\
+VITD  & 322 & \cmark & \cmark & \cmark & 3 & Big Six \\
+B12   & 300 & \cmark & \cmark & \cmark & 3 & Big Six \\
+FOL   & 260 & \cmark & \cmark & \cmark & 3 & Big Six \\
+T4L   & 240 & \cmark & \cmark & \cmark & 3 & Big Six \\
+PSA   & 149 & \cmark & \cmark & \cmark & 3 & Big Six \\
+CEA   &  88 & \cmark & \cmark & \cmark & 3 & Cohesión \\
+FSH   &  45 & \cmark & \cmark & \cmark & 3 & Cohesión \\
+TES   &  43 & \cmark & \cmark & \cmark & 3 & Cohesión \\
+CA153 &  45 & \cmark & \cmark & \cmark & 3 & Cohesión \\
+LH    &  41 & \cmark & \cmark & \cmark & 3 & Cohesión \\
+COR   &  35 & \cmark & \cmark & \cmark & 3 & Cohesión \\
+PRL   &  32 & \cmark & \cmark & \cmark & 3 & Cohesión \\
+CA199 &  28 & \cmark & \cmark & \cmark & 3 & Cohesión \\
+EST   &  28 & \cmark & \cmark & \cmark & 3 & Cohesión \\
+PROG  &  22 & \cmark & \cmark & \cmark & 3 & Cohesión \\
+\midrule
+CA125 &  41 & ---    & \cmark & \cmark & 2 & \\
+PTH   &  74 & \cmark & \cmark & ---    & 2 & \\
+T3L   &  37 & \cmark & ---    & \cmark & 2 & \\
+TPO   &  36 & \cmark & \cmark & ---    & 2 & \\
+PSAL  &  32 & \cmark & ---    & \cmark & 2 & R7: PSAL $\subseteq$ PSA \\
+INS   &  17 & \cmark & ---    & \cmark & 2 & R6c: dem $<$ 20 \\
+AFP   &  15 & ---    & \cmark & \cmark & 2 & R6c: dem $<$ 20 \\
+\midrule
+HCG   &   8 & \cmark & ---    & ---    & 1 & R6c, exenta \\
+TIRO  &  10 & ---    & ---    & \cmark & 1 & R6c, exenta \\
+PEPC  &   8 & ---    & \cmark & ---    & 1 & R6c, exenta \\
+ATG   &   6 & ---    & ---    & \cmark & 1 & R6c, exenta \\
+SHBG  &   4 & ---    & ---    & \cmark & 1 & R6c, exenta \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Patrón observado:} las 6 pruebas del Big Six están en los 3 analizadores por R6b.
+La Fase 2 expande a 3 analizadores 10 pruebas adicionales: el panel hormonal reproductor
+completo (FSH, LH, TES, PRL, COR, EST, PROG) más CEA, CA153 y CA199 del grupo oncológico.
+CA125 solo aparece en QUIN\_7 (AFP CA125 CA153 CA199 CEA, $f=37$), cuyo componente AFP
+está limitado a 2 analizadores por R6c; en consecuencia CA125 queda en solo 2 máquinas.
+Las 7 pruebas de muy bajo volumen se distribuyen entre 1 y 2 máquinas: INS y AFP en 2;
+HCG, TIRO, PEPC, ATG y SHBG en 1.
+
+\subsection{Distribución final de petacas (postproceso proporcional, 144 posiciones)}
+
+Tras el postproceso, las 144 posiciones quedan completamente ocupadas. La columna
+\emph{Factor} indica $\text{Cap. total}/d_i$; un factor $\geq 2$ garantiza que los
+analizadores restantes pueden absorber la carga si uno falla.
+
+\begin{table}[H]
+\centering
+\caption{Distribución final de petacas por prueba y analizador.}
+\small
+\begin{tabular}{lrcccrc}
+\toprule
+\textbf{Prueba} & \textbf{Dem. máx} & \textbf{DxI1} & \textbf{DxI2} & \textbf{DxI3} & \textbf{Cap. total} & \textbf{Factor} \\
+\midrule
+TSH   & 765 &  7 &  6 &  8 & 4\,200 & 5.5$\times$ \\
+VITD  & 322 &  2 &  2 &  9 &   650 & 2.0$\times$ \\
+B12   & 300 & 10 &  2 &  2 &   700 & 2.3$\times$ \\
+FOL   & 260 &  5 &  7 &  1 &   650 & 2.5$\times$ \\
+T4L   & 240 &  2 &  7 &  2 &   550 & 2.3$\times$ \\
+PSA   & 149 &  4 &  2 &  1 &   700 & 4.7$\times$ \\
+CEA   &  88 &  1 &  2 &  2 &   250 & 2.8$\times$ \\
+FSH   &  45 &  2 &  1 &  1 &   200 & 4.4$\times$ \\
+TES   &  43 &  2 &  1 &  1 &   200 & 4.7$\times$ \\
+CA153 &  45 &  1 &  1 &  2 &   200 & 4.4$\times$ \\
+CA125 &  41 & --- &  1 &  2 &   150 & 3.7$\times$ \\
+LH    &  41 &  1 &  1 &  2 &   200 & 4.9$\times$ \\
+PTH   &  74 &  2 &  2 & --- &  200 & 2.7$\times$ \\
+COR   &  35 &  1 &  2 &  1 &   200 & 5.7$\times$ \\
+T3L   &  37 &  1 & --- &  2 &  150 & 4.1$\times$ \\
+PRL   &  32 &  1 &  2 &  1 &   200 & 6.3$\times$ \\
+CA199 &  28 &  1 &  2 &  1 &   200 & 7.1$\times$ \\
+TPO   &  36 &  2 &  1 & --- &  150 & 4.2$\times$ \\
+PSAL  &  32 &  1 & --- &  2 &  150 & 4.7$\times$ \\
+EST   &  28 &  1 &  2 &  1 &   200 & 7.1$\times$ \\
+PROG  &  22 &  1 &  1 &  1 &   150 & 6.8$\times$ \\
+INS   &  17 &  1 & --- &  1 &  100 & 5.9$\times$ \\
+AFP   &  15 & --- &  1 &  1 &   100 & 6.7$\times$ \\
+HCG   &   8 &  1 & --- & --- &  50 & 6.3$\times$ \\
+TIRO  &  10 & --- & --- &  1 &   50 & 5.0$\times$ \\
+PEPC  &   8 & --- &  1 & --- &   50 & 6.3$\times$ \\
+ATG   &   6 & --- & --- &  1 &   50 & 8.3$\times$ \\
+SHBG  &   4 & --- & --- &  1 &   50 & 12.5$\times$ \\
+\midrule
+\textbf{TOTAL} & & \textbf{50} & \textbf{47} & \textbf{47} & & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Todas las pruebas superan el umbral de contingencia $2\times$; el punto más ajustado es
+VITD con exactamente $2.0\times$. T4L alcanza $2.3\times$ y B12 $2.3\times$, ambas
+mejoradas respecto a versiones anteriores gracias a las posiciones liberadas por R6c. La
+distribución proporcional integrada en el \texttt{.run} garantiza exactamente 144
+posiciones ocupadas: DxI1 = 50, DxI2 = 47, DxI3 = 47.
+
+\clearpage
+% ============================================================
+\section{Conclusiones}
+% ============================================================
+
+Este trabajo ha presentado el diseño, formulación y resolución de un modelo de
+optimización para la distribución de reactivos en los tres analizadores DxI-9000 de un
+laboratorio de análisis clínico. Las principales conclusiones se articulan en torno a
+cuatro ejes:
+
+\paragraph{1. Mejora cuantificable sobre la distribución actual.}
+La solución óptima reduce el makespan en demanda media en un 8.7\,\% respecto a la
+distribución empírica del laboratorio (83.8 frente a 91.8\,min), elimina completamente
+el desequilibrio de carga entre analizadores (desvío 22.6 $\to$ 0\,min) y corrige la
+única violación de contingencia detectada: INS, que operaba con un solo analizador,
+queda ahora garantizada en dos. Adicionalmente, la cohesión de peticiones --- sin
+garantía formal en la distribución actual --- alcanza el 99.7\,\% (25\,804/25\,872
+co-ocurrencias mensuales cubiertas en un único equipo).
+
+\paragraph{2. Eficacia de la formulación lexicográfica en dos fases.}
+La separación jerárquica de objetivos demuestra ser la estrategia correcta para este
+problema: la Fase 1 obtiene el makespan mínimo (172.2\,min, 35.9\,\% de la jornada)
+con balance perfecto entre los tres analizadores, y la Fase 2 maximiza la cohesión
+sin comprometer en absoluto ese resultado. El solver HiGHS 1.11.0 resuelve ambas
+fases en un número muy reducido de nodos (1 en cada fase), lo que confirma que la
+formulación es ajustada y las restricciones de simetría y equilibrio (R6b, R9)
+orientan eficazmente la búsqueda.
+
+\paragraph{3. Valor del tratamiento diferenciado del Big Six y R6c.}
+Separar las seis pruebas de mayor volumen (Big Six) mediante una restricción dura en
+lugar de incentivarlas en el objetivo libera la Fase 2 para cohesionar el panel
+hormonal reproductor y el grupo oncológico, donde reside la variabilidad real de
+co-solicitudes. La restricción R6c, que limita a dos analizadores las pruebas con
+demanda inferior a 20\,det/día, libera posiciones que se redistribuyen a pruebas de
+mayor volumen (T4L pasa a factor 2.3$\times$, B12 a 2.3$\times$, VITD a 2.0$\times$),
+reforzando la autonomía del sistema ante un fallo de equipo. El coste de esta
+restricción en cohesión es mínimo: únicamente QUIN\_7 y los sextuplos SEXT\_8/9/10,
+que contienen AFP e INS respectivamente, pierden la co-ubicación en el tercer
+analizador.
+
+\paragraph{4. Linealización AND jerárquica como contribución técnica.}
+La generalización de la relajación de McCormick a grupos de $\ell$ variables binarias
+mediante solo dos familias de restricciones (R15 y R16) permite capturar directamente
+el valor de mantener paneles clínicos completos --- hasta sextuplos --- en el mismo
+analizador. Esta formulación escala linealmente con el número de grupos y niveles
+($O(\ell \cdot |\mathcal{G}^{(\ell)}| \cdot |J|)$ restricciones), frente a la
+complejidad exponencial ($2^{\ell}-1$) de la envoltura convexa completa.
+
+\paragraph{Limitaciones y trabajo futuro.}
+El modelo usa la demanda máxima diaria observada como escenario de planificación
+conservador, lo que puede sobredimensionar la capacidad en días normales. Una extensión
+natural sería incorporar la distribución estocástica de la demanda (p.\,ej., mediante un
+modelo robusto o estocástico por escenarios) para obtener soluciones que balanceen
+coste de reactivo y riesgo de agotamiento. Asimismo, el modelo asume que los tres
+analizadores están siempre operativos; modelar explícitamente los tiempos de
+mantenimiento preventivo y las ventanas de recalibración podría refinar las garantías
+de contingencia más allá del umbral $2\times$ actualmente asegurado.
+
+% ============================================================
+\end{document}
+% ============================================================
