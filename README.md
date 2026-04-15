@@ -55,12 +55,11 @@ Manteniendo el tiempo óptimo de la Fase 1, el modelo utiliza una **linealizaci�
 ampl: include run_dxi.run;
 ```
 
-### Autores
+---
+## 🤝 Contribuidores
 
-Álvaro Espejo Martínez 
-
-Javier Hernández Rosique .
-
-Raúl Sánchez Ibáñez
+* **Álvaro Espejo Martínez** - [![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/espejomartinezalvaro-spec)
+* **Javier Hernández Rosique** - [![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/javierhernandezrosique)
+* **Raúl Sánchez Ibáñez** - [![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/raaulsan)
 
 
