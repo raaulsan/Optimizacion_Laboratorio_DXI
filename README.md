@@ -40,7 +40,8 @@ Manteniendo el tiempo óptimo de la Fase 1, el modelo utiliza una **linealizaci�
 * `modelo_dxi.mod`: Formulación matemática en **AMPL** (variables, objetivos y restricciones).
 * `datos_dxi.dat`: Archivo de datos con la demanda real de enero de 2026, capacidades y conjuntos de componentes.
 * `run_dxi.run`: Script de ejecución que automatiza las fases y exporta los resultados a un informe de texto.
-* `Memoria_Proy_LabOpt.pdf`: Documentación detallada con la justificación clínica, técnica y análisis de resultados.
+* `Memoria_Proy_LabOpt.pdf`: Documentación detallada con la justificación clínica, técnica y análisis de resultados.ç
+* `PRESENTACIÓN__Optimización_DxI_9000.pdf`: Presentación utilizada para la defensa pública del proyecto.
 * `output_ampl.txt`: Informe completo generado por el script `.run`, que incluye el makespan, la distribución de petacas y métricas de cohesión.
 * `result_xyp.txt`: Archivo de volcado de datos con los resultados brutos de las variables $x_{ij}$, $y_{ij}$ y $p_{ij}$, preparado para su uso en scripts de post-procesamiento.
 
