@@ -125,6 +125,9 @@ subject to DemandaCompleta {i in PRUEBAS}:
     sum {j in ANALIZADORES} y[i,j] = 1;
 
 # R4: Solo se puede enrutar demanda a un analizador si la prueba está instalada en él
+# Nota: dado cap[j]>0 y dem[i]>0, esta restricción es formalmente redundante (R5a+R2
+# ya fuerzan y[i,j]=0 cuando x[i,j]=0). Se mantiene por robustez lógica ante casos
+# degenerados con dem[i]=0 y para facilitar el branching del solver en la relajación LP.
 subject to SoloEnrutarSiPresente {i in PRUEBAS, j in ANALIZADORES}:
     y[i,j] <= x[i,j];
 
@@ -185,11 +188,16 @@ subject to JornadaLaboral:
 subject to MakespanFijado:
     T_max <= T_opt;
 
-# ─── RESTRICCIONES DE LINEALIZACIÓN DE w (grupos) ─────────────────────────────
+# ─── RESTRICCIONES DE LINEALIZACIÓN DE w (grupos) — R12 y R13 ─────────────────
 # w[g,j] = AND_{i in COMP[g]} x[i,j]   (1 sii todas las pruebas del grupo están en j)
 # Linealización estándar para AND de n binarias:
-#   (Cota superior)  w[g,j] <= x[i,j]                    ∀i∈COMP[g]
-#   (Cota inferior)  w[g,j] >= sum_{i∈COMP[g]} x[i,j] − (|COMP[g]|−1)
+#   R12 (Cota superior)  w[g,j] <= x[i,j]                    ∀i∈COMP[g]
+#   R13 (Cota inferior)  w[g,j] >= sum_{i∈COMP[g]} x[i,j] − (|COMP[g]|−1)
+#
+# Nota sobre R13: en una maximización pura con f_g>0 el objetivo ya fuerza w=1 siempre
+# que R12 lo permita, haciendo R13 redundante para la optimalidad. Se mantiene porque
+# (a) refuerza la relajación LP y acelera la convergencia del solver, y (b) asegura la
+# correcta definición de w ante posibles cambios futuros en la función objetivo.
 
 # PAREJAS (n=2)
 subject to Pare_Superior {g in GRUPOS_PARE, i in COMP_PARE[g], j in ANALIZADORES}:

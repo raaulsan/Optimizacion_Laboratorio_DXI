@@ -3,7 +3,6 @@
 # Enero 2026 | 22 dias laborables
 # Fuente: preprocesamiento_laboratorio_v3.ipynb + anotaciones 09/04
 # =============================================================================
-
 # --- CONJUNTOS ---------------------------------------------------------------
 
 set PRUEBAS :=
@@ -31,6 +30,7 @@ param cap :=
 param horas := 8 ;
 
 param delta := 3 ;
+param umbral_tri := 20 ;
 
 
 # --- CAPACIDAD DE PETACA -----------------------------------------------------
@@ -136,10 +136,10 @@ param dem :=
 
 
 # =============================================================================
-# CO-OCURRENCIAS JERARQUICAS ? TOP 10 POR NIVEL (excluye Big Six)
+# CO-OCURRENCIAS JERARQUICAS // TOP 10 POR NIVEL (excluye Big Six)
 # Fuente: preprocesamiento_laboratorio_v3.ipynb, celda 5b
 # Se conservan unicamente los 10 grupos mas frecuentes por nivel.
-# Los pesos f son las frecuencias reales de enero 2026 (n? peticiones).
+# Los pesos f son las frecuencias reales de enero 2026.
 # =============================================================================
 
 # --- PAREJAS (top 10) --------------------------------------------------------

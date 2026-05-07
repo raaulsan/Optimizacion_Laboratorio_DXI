@@ -236,14 +236,14 @@ printf "\n";
 # POST-PROCESO PROPORCIONAL — TABLA FINAL DE 144 POSICIONES
 # =============================================================================
 # Algoritmo (por analizador j):
-#   1. excess[j]   = cap[j] - sum_i p[i,j]          (posiciones libres)
-#   2. totalw[j]   = sum_{i: y>0} y[i,j]*dem[i]      (demanda enrutada total)
-#   3. exact[i,j]  = excess[j] * y[i,j]*dem[i] / totalw[j]   (reparto continuo)
-#   4. p_base[i,j] = p[i,j] + floor(exact[i,j])      (parte entera)
-#   5. resto[j]    = excess[j] - sum_i floor(exact[i,j])
-#   6. rank[i,j]   = nº de tests con frac mayor que i (0 = mayor fracción)
-#   7. p_final[i,j]= p_base[i,j] + 1  si rank[i,j] < resto[j], si no p_base
-# Tests con x=1 pero y=0 (presencia fantasma) conservan su p mínimo.
+#   1. pp_excess[j]   = cap[j] - sum_i p[i,j]                  (posiciones libres)
+#   2. pp_totalw[j]   = sum_{i: y>0} y[i,j]*dem[i]             (demanda enrutada total)
+#   3. pp_exact[i,j]  = pp_excess[j] * y[i,j]*dem[i] / pp_totalw[j]  (reparto continuo)
+#   4. pp_frac[i,j]   = pp_exact[i,j] - floor(pp_exact[i,j])   (parte fraccionaria, usada para el ranking)
+#   5. pp_rem[j]      = pp_excess[j] - sum_i floor(pp_exact[i,j])     (posiciones restantes tras floor)
+#   6. pp_rank[i,j]   = nº de tests con pp_frac mayor que i (0 = mayor fracción → más prioritario)
+#   7. pp_pfinal[i,j] = p[i,j] + floor(pp_exact[i,j]) + 1  si pp_rank[i,j] < pp_rem[j], si no sin +1
+# Tests con x=1 pero y=0 (presencia fantasma) conservan su p mínimo (sin reparto extra).
 # =============================================================================
 
 param pp_excess  {ANALIZADORES}      default 0;
@@ -255,6 +255,10 @@ param pp_rank    {PRUEBAS, ANALIZADORES} default 0;
 param pp_pfinal  {PRUEBAS, ANALIZADORES} default 0;
 
 # Paso 1-2
+# Nota: p[i,j] aquí es la solución ya optimizada. Las restricciones R2 y R5b del modelo
+# garantizan conjuntamente que p[i,j] = max(1, ceil(y[i,j]*dem[i]/c[i])) para toda
+# prueba instalada. El post-proceso no recalcula ese mínimo: parte directamente de p[i,j]
+# y distribuye las posiciones sobrantes del carrusel de forma proporcional a la demanda.
 let {j in ANALIZADORES}
     pp_excess[j] := cap[j] - sum {i in PRUEBAS} p[i,j];
 let {j in ANALIZADORES}
